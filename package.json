@@ -1,0 +1,16 @@
+{
+  "name": "social-media-project",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "install:all": "npm install --prefix backend; npm install --prefix frontend",
+    "predev": "kill-port 3000 5000",
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm --prefix backend start\" \"npm --prefix frontend start\"",
+    "backend": "npm --prefix backend start",
+    "frontend": "npm --prefix frontend start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "kill-port": "^2.0.1"
+  }
+}
