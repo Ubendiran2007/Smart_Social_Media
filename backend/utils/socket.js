@@ -12,8 +12,11 @@ const initializeSocket = (server) => {
     }
   });
 
-  // Store online users
+  // Store online users and room state
   const onlineUsers = new Map();
+  const roomMembers = new Map(); // roomId -> Set of socketIds
+  const roomMessages = new Map(); // roomId -> Array of messages (mock persistence for now)
+  const roomPomodoro = new Map(); // roomId -> { state: 'work'|'break', timeRemaining, intervalId }
 
   // Authentication middleware for socket
   io.use(async (socket, next) => {
@@ -164,10 +167,89 @@ const initializeSocket = (server) => {
         lastSeen: new Date() 
       }).exec();
 
+      // Leave any rooms
+      for (const [roomId, members] of roomMembers.entries()) {
+        if (members.has(socket.id)) {
+          members.delete(socket.id);
+          io.to(roomId).emit('roomMembersUpdate', { roomId, count: members.size });
+        }
+      }
+
       // Broadcast offline status
       socket.broadcast.emit('userOffline', {
         userId: socket.userId,
         username: socket.user.username
+      });
+    });
+
+    // ─────────────────────────────────────────────────────────────────
+    // CREATOR ROOMS LOGIC
+    // ─────────────────────────────────────────────────────────────────
+
+    socket.on('joinRoom', (data) => {
+      const { roomId } = data;
+      socket.join(roomId);
+
+      if (!roomMembers.has(roomId)) {
+        roomMembers.set(roomId, new Set());
+      }
+      roomMembers.get(roomId).add(socket.id);
+
+      // Broadcast active count to room
+      io.to(roomId).emit('roomMembersUpdate', { roomId, count: roomMembers.get(roomId).size });
+      
+      // Optionally send recent messages
+      if (roomMessages.has(roomId)) {
+        socket.emit('roomHistory', { roomId, messages: roomMessages.get(roomId) });
+      }
+    });
+
+    socket.on('leaveRoom', (data) => {
+      const { roomId } = data;
+      socket.leave(roomId);
+
+      if (roomMembers.has(roomId)) {
+        roomMembers.get(roomId).delete(socket.id);
+        io.to(roomId).emit('roomMembersUpdate', { roomId, count: roomMembers.get(roomId).size });
+      }
+    });
+
+    socket.on('sendRoomMessage', (data) => {
+      const { roomId, message, type } = data; // type can be text, code, etc.
+
+      const newMessage = {
+        _id: Date.now().toString(),
+        sender: {
+          _id: socket.userId,
+          username: socket.user.username,
+          avatar: socket.user.avatar
+        },
+        message,
+        type: type || 'text',
+        createdAt: new Date()
+      };
+
+      if (!roomMessages.has(roomId)) roomMessages.set(roomId, []);
+      roomMessages.get(roomId).push(newMessage);
+      if (roomMessages.get(roomId).length > 100) roomMessages.get(roomId).shift();
+
+      io.to(roomId).emit('newRoomMessage', { roomId, message: newMessage });
+    });
+
+    socket.on('roomTyping', (data) => {
+      const { roomId } = data;
+      socket.to(roomId).emit('userRoomTyping', { roomId, username: socket.user.username });
+    });
+
+    // Pomodoro Sync
+    socket.on('startPomodoro', (data) => {
+      const { roomId, durationMinutes } = data;
+      // Broadcast to all users in the room that a timer started
+      io.to(roomId).emit('pomodoroStarted', { 
+        roomId, 
+        durationMinutes, 
+        startTime: Date.now(),
+        startedBy: socket.user.username
       });
     });
   });

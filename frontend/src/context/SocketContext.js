@@ -89,6 +89,30 @@ export const SocketProvider = ({ children }) => {
     }
   };
 
+  const joinRoom = (roomId) => {
+    if (socket) {
+      socket.emit('joinRoom', { roomId });
+    }
+  };
+
+  const leaveRoom = (roomId) => {
+    if (socket) {
+      socket.emit('leaveRoom', { roomId });
+    }
+  };
+
+  const sendRoomMessage = (roomId, message, type = 'text') => {
+    if (socket) {
+      socket.emit('sendRoomMessage', { roomId, message, type });
+    }
+  };
+
+  const startPomodoro = (roomId, durationMinutes) => {
+    if (socket) {
+      socket.emit('startPomodoro', { roomId, durationMinutes });
+    }
+  };
+
   const value = {
     socket,
     onlineUsers,
@@ -97,6 +121,10 @@ export const SocketProvider = ({ children }) => {
     sendNotification,
     startTyping,
     stopTyping,
+    joinRoom,
+    leaveRoom,
+    sendRoomMessage,
+    startPomodoro,
     setNotifications
   };
 
