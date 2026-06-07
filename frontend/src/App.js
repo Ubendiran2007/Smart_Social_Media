@@ -200,8 +200,9 @@ function AppContent() {
   );
 }
 
-import { MoodProvider } from './context/MoodContext';
-import { WellnessProvider } from './context/WellnessContext';
+import { MoodProvider }           from './context/MoodContext';
+import { WellnessProvider }       from './context/WellnessContext';
+import { RecommendationProvider } from './context/RecommendationContext';
 
 function App() {
   return (
@@ -214,9 +215,11 @@ function App() {
       <AuthProvider>
         <MoodProvider>
           <WellnessProvider>
-            <SocketProvider>
-              <AppContent />
-            </SocketProvider>
+            <RecommendationProvider>
+              <SocketProvider>
+                <AppContent />
+              </SocketProvider>
+            </RecommendationProvider>
           </WellnessProvider>
         </MoodProvider>
       </AuthProvider>

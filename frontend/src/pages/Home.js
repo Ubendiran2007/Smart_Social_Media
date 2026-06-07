@@ -11,6 +11,7 @@ import { reelsAPI } from '../services/reelsAPI';
 import { useAuth } from '../context/AuthContext';
 import { useMood } from '../context/MoodContext';
 import { useWellness } from '../context/WellnessContext';
+import { useRecommendations } from '../context/RecommendationContext';
 import {
   BoltIcon,
   SparklesIcon,
@@ -115,11 +116,11 @@ const Home = () => {
   const [posts, setPosts] = useState([]);
   const [stories, setStories] = useState([]);
   const [reelPreviews, setReelPreviews] = useState([]);
-  const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [selectedUserStories, setSelectedUserStories] = useState(null);
+  const { suggestedCreators } = useRecommendations();
 
   const moodCfg = MOOD_CONFIG[activeMood] || MOOD_CONFIG['None'];
 
@@ -150,13 +151,6 @@ const Home = () => {
       if (reelsRes.status === 'fulfilled') {
         setReelPreviews(reelsRes.value.data?.reels?.slice(0, 6) || []);
       }
-
-      // Mock suggested creators from existing user data
-      setSuggestedUsers([
-        { username: 'arya_dev', fullName: 'Arya Stark', avatar: null },
-        { username: 'neural_ninja', fullName: 'Neural Ninja', avatar: null },
-        { username: 'codewizard', fullName: 'Code Wizard', avatar: null },
-      ]);
     } catch (error) {
       console.error('Home load error:', error);
     } finally {
@@ -294,14 +288,14 @@ const Home = () => {
           )}
 
           {/* 3. Suggested Creators (mobile only — desktop in sidebar) ──────────── */}
-          {suggestedUsers.length > 0 && (
+          {suggestedCreators.length > 0 && (
             <section className="lg:hidden bg-surface border border-border rounded-xl p-4">
               <div className="flex items-center gap-2 mb-4">
                 <SparklesIcon className="w-4 h-4 text-accent" />
                 <h2 className="text-sm font-semibold text-foreground">Suggested Creators</h2>
               </div>
               <div className="space-y-2">
-                {suggestedUsers.map((c, i) => <SuggestedCreator key={c.username} creator={c} index={i} />)}
+                {suggestedCreators.slice(0, 3).map((c, i) => <SuggestedCreator key={c.username} creator={c} index={i} />)}
               </div>
             </section>
           )}
@@ -374,18 +368,6 @@ const Home = () => {
         {/* ── Sidebar ──────────────────────────────────────────────────────── */}
         <div className="lg:col-span-4 hidden lg:block">
           <div className="sticky top-20 space-y-5">
-
-            {/* Suggested Creators */}
-            <div className="bg-surface border border-border rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <SparklesIcon className="w-4 h-4 text-accent" />
-                <h2 className="text-sm font-semibold text-foreground">Suggested for You</h2>
-              </div>
-              <div className="space-y-2">
-                {suggestedUsers.map((c, i) => <SuggestedCreator key={c.username} creator={c} index={i} />)}
-              </div>
-            </div>
-
             <NeuralDiscoverySidebar />
           </div>
         </div>

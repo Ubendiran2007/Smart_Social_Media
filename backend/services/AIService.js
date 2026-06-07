@@ -13,65 +13,115 @@ class AIService {
    * Performs deep contextual analysis for hate speech, bullying, and profanity.
    */
   async analyzeToxicity(text) {
-    if (!text) return { isToxic: false, score: 0 };
+    if (!text) return { 
+      isToxic: false, 
+      toxicityScore: 0, 
+      positivityScores: { kindness: 50, constructiveness: 50, empathy: 50 },
+      status: 'Healthy',
+      rewrites: [],
+      coachMessage: null
+    };
 
     const textLower = text.toLowerCase();
+    
+    // Aggression/Toxicity Patterns
     const toxicPatterns = [
-      { pattern: /useless|worthless|loser|pathetic|idiot|stupid|dumb|moron|clown/i, weight: 0.8, category: 'insult' },
-      { pattern: /hate|kill|die|murder|attack|suicide|punch|kick/i, weight: 0.9, category: 'violence_hate' },
-      { pattern: /trash|garbage|shit|fuck|bitch|asshole|piss/i, weight: 0.7, category: 'profanity' },
-      { pattern: /ugly|fat|disgusting|horrible|shut up|get out|leave/i, weight: 0.6, category: 'harassment' }
+      { pattern: /useless|worthless|loser|pathetic|idiot|stupid|dumb|moron|clown/i, weight: 60, category: 'insult' },
+      { pattern: /hate|kill|die|murder|attack|suicide|punch|kick/i, weight: 90, category: 'violence_hate' },
+      { pattern: /trash|garbage|shit|fuck|bitch|asshole|piss/i, weight: 50, category: 'profanity' },
+      { pattern: /ugly|fat|disgusting|horrible|shut up|get out|leave/i, weight: 45, category: 'harassment' }
+    ];
+
+    // Positivity/Constructiveness Patterns
+    const positivePatterns = [
+      { pattern: /great|awesome|excellent|amazing|brilliant/i, impact: { kindness: 20, constructiveness: 10, empathy: 10 } },
+      { pattern: /could be improved|i think|maybe we could|consider/i, impact: { kindness: 10, constructiveness: 30, empathy: 10 } },
+      { pattern: /understand|feel|sorry|appreciate|hear you/i, impact: { kindness: 15, constructiveness: 10, empathy: 30 } }
     ];
 
     const rewriteMap = {
-      "useless": "I think this could be improved.",
-      "idiot": "I have a different perspective.",
-      "stupid": "This needs more thought.",
-      "hate": "I'm not a fan of this.",
-      "trash": "This isn't my preference.",
-      "pathetic": "I was expecting more."
+      "useless": "I think this could be improved",
+      "idiot": "I have a different perspective",
+      "stupid": "This needs more thought",
+      "hate": "I'm not a fan of this",
+      "trash": "This isn't my preference",
+      "pathetic": "I was expecting more",
+      "shut up": "Let's pause the discussion",
+      "garbage": "There's room for improvement here"
     };
 
-    let score = 0;
+    let toxicityScore = 0;
     let violations = [];
     let matchedWords = [];
 
+    // Calculate Toxicity
     toxicPatterns.forEach(item => {
       if (item.pattern.test(text)) {
-        score += item.weight;
+        toxicityScore += item.weight;
         violations.push(item.category);
-        const matches = text.match(item.pattern);
+        const matches = text.match(new RegExp(item.pattern, 'gi'));
         if (matches) matchedWords.push(...matches);
       }
     });
 
-    const isToxic = score > 0.4;
-    const finalScore = Math.min(score, 1);
+    // Determine Status
+    let status = 'Healthy';
+    if (toxicityScore > 20 && toxicityScore <= 50) status = 'Warning';
+    if (toxicityScore > 50) status = 'Blocked';
+    if (toxicityScore > 100) toxicityScore = 100;
 
-    // Generate Smart Rewrites
-    let suggestions = [];
-    if (isToxic) {
+    // Calculate Positivity
+    let positivity = { kindness: 50, constructiveness: 50, empathy: 50 };
+    if (toxicityScore > 20) {
+      positivity.kindness -= Math.floor(toxicityScore / 2);
+      positivity.empathy -= Math.floor(toxicityScore / 2);
+      positivity.constructiveness -= Math.floor(toxicityScore / 3);
+    }
+    
+    positivePatterns.forEach(item => {
+      if (item.pattern.test(text)) {
+        positivity.kindness = Math.min(100, positivity.kindness + item.impact.kindness);
+        positivity.constructiveness = Math.min(100, positivity.constructiveness + item.impact.constructiveness);
+        positivity.empathy = Math.min(100, positivity.empathy + item.impact.empathy);
+      }
+    });
+
+    // Generate Smart Rewrites and Coach Message
+    let rewrites = [];
+    let coachMessage = null;
+
+    if (toxicityScore > 20) {
       let rewritten = text;
       matchedWords.forEach(word => {
         const replacement = rewriteMap[word.toLowerCase()];
         if (replacement) rewritten = rewritten.replace(new RegExp(word, 'gi'), replacement);
       });
       
-      suggestions = [
-        rewritten !== text ? rewritten : "I think we can find a more constructive way to express this.",
-        "Perhaps we could focus on improvement here?",
-        "Interesting point, let's keep it respectful."
-      ];
+      if (rewritten !== text) {
+        rewrites.push(rewritten);
+      }
+      
+      if (violations.includes('insult') || violations.includes('harassment')) {
+        coachMessage = "Try focusing on the idea instead of the person. Constructive feedback is more effective.";
+        rewrites.push("Can you explain your approach?");
+        rewrites.push("I have a different opinion.");
+      } else if (violations.includes('profanity')) {
+        coachMessage = "Professional language leads to better technical discussions.";
+      } else if (violations.includes('violence_hate')) {
+        coachMessage = "Take a deep breath. Let's maintain a supportive environment.";
+      }
+    } else if (toxicityScore === 0 && text.length > 10) {
+      coachMessage = "Great communication! Your input adds value to the community.";
     }
 
     return {
-      isToxic,
-      score: finalScore,
+      isToxic: toxicityScore > 50,
+      toxicityScore,
+      positivityScores: positivity,
+      status,
       violations: [...new Set(violations)],
-      recommendation: isToxic 
-        ? 'Neural guard: This content feels a bit heavy for the collective. Let’s keep it positive! ✨' 
-        : 'Frequency cleared. Safe to share. ✅',
-      suggestions
+      coachMessage,
+      rewrites: [...new Set(rewrites)].slice(0, 3)
     };
   }
 

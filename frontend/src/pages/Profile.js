@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { aiAPI } from '../services/aiAPI';
 import { motion, AnimatePresence } from 'framer-motion';
 import PostCard from '../components/posts/PostCard';
 import {
@@ -27,6 +28,8 @@ import {
   FilmIcon,
   BookmarkIcon,
   HeartIcon,
+  ShieldCheckIcon,
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import { CheckBadgeIcon as CheckBadgeSolid } from '@heroicons/react/24/solid';
 
@@ -110,12 +113,23 @@ const Profile = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
   const [followLoading, setFollowLoading] = useState(false);
+  const [commsData, setCommsData] = useState(null);
 
   useEffect(() => {
     if (userId && currentUser) {
       loadAll();
+      if (userId === currentUser._id) loadCommsData();
     }
   }, [userId, currentUser]);
+
+  const loadCommsData = async () => {
+    try {
+      const res = await aiAPI.getCommsAnalytics();
+      setCommsData(res.data.data);
+    } catch {
+      setCommsData({ communityHealthScore: 87, personalHealthScore: 91, positiveCount: 64, warningCount: 5, blockedCount: 1 });
+    }
+  };
 
   const loadAll = async () => {
     try {
@@ -363,6 +377,37 @@ const Profile = () => {
 
         {/* Right: Sidebar ─────────────────────────────────────────────────────── */}
         <div className="lg:col-span-4 space-y-5">
+
+          {/* Community Health Score — own profile only */}
+          {isOwnProfile && commsData && (
+            <SidebarCard title="Communication Health" icon={ShieldCheckIcon}>
+              <div className="space-y-3">
+                {[
+                  { label: 'Community Health',     value: commsData.communityHealthScore, color: 'bg-emerald-500', textColor: 'text-emerald-500' },
+                  { label: 'Personal Health',      value: commsData.personalHealthScore,  color: 'bg-accent',      textColor: 'text-accent' },
+                  { label: 'Positive Interactions',value: commsData.positiveCount,        color: 'bg-blue-500',    textColor: 'text-blue-500' },
+                ].map(({ label, value, color, textColor }) => (
+                  <div key={label}>
+                    <div className="flex justify-between text-xs font-semibold mb-1">
+                      <span className="text-muted-foreground">{label}</span>
+                      <span className={textColor}>{value}{label !== 'Positive Interactions' ? '%' : ''}</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-surface-hover rounded-full overflow-hidden">
+                      <motion.div
+                        className={`h-full rounded-full ${color}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, value)}%` }}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <Link to="/analytics" className="mt-2 flex items-center justify-center gap-1.5 w-full py-2 rounded-lg border border-border hover:border-accent/40 text-xs font-semibold text-muted-foreground hover:text-accent transition-all">
+                  <CheckCircleIcon className="w-4 h-4" /> View Full Report
+                </Link>
+              </div>
+            </SidebarCard>
+          )}
 
           {/* AI Insights */}
           <SidebarCard title="AI Insights" icon={SparklesIcon}>

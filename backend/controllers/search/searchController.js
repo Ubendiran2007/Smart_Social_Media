@@ -16,6 +16,12 @@ const globalSearch = async (req, res) => {
 
     const regex = new RegExp(q, 'i');
     
+    // Record search behavior to update recommendation engine profiles
+    const RecommendationService = require('../../services/RecommendationService');
+    RecommendationService.recordBehavior(req.user.id, { type: 'search', query: q }).catch(err => {
+      console.error('Failed to record search behavior:', err);
+    });
+    
     // Base queries
     let postQuery = {
       $or: [

@@ -17,7 +17,8 @@ const chatRoutes = require('./routes/chat/chatRoutes');
 const notificationRoutes = require('./routes/notifications/notificationRoutes');
 const userRoutes = require('./routes/userRoutes');
 const aiRoutes = require('./routes/ai/aiRoutes');
-const hashtagRoutes = require('./routes/hashtag/hashtagRoutes');
+const hashtagRoutes     = require('./routes/hashtag/hashtagRoutes');
+const recommendationRoutes = require('./routes/recommendations/recommendationRoutes');
 
 
 const app = express();
@@ -99,8 +100,9 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/ai', aiRoutes);
-app.use('/api/hashtags', hashtagRoutes);
-app.use('/api/search', searchRoutes);
+app.use('/api/hashtags',         hashtagRoutes);
+app.use('/api/search',           searchRoutes);
+app.use('/api/recommendations',  recommendationRoutes);
 
 
 // Health check

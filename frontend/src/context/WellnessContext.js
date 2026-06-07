@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { GlassCard, NeonButton, AIBadge } from '../components/ui/SiliconValley';
 import { usersAPI } from '../services/usersAPI';
+import { recommendationAPI } from '../services/recommendationAPI';
 
 const WellnessContext = createContext();
 
@@ -222,7 +223,11 @@ export const WellnessProvider = ({ children }) => {
   };
 
   const toggleFocusMode = () => {
-    setFocusMode(!focusMode);
+    const nextVal = !focusMode;
+    setFocusMode(nextVal);
+    if (nextVal) {
+      recommendationAPI.recordBehavior('focus', { state: 'started' }).catch(() => {});
+    }
   };
 
   return (

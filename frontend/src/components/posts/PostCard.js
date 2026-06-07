@@ -22,6 +22,7 @@ import { toast } from 'react-hot-toast';
 import { aiAPI } from '../../services/aiAPI';
 import { ClickableHashtags, HashtagPill } from '../hashtags/HashtagIntelligencePanel';
 import { useMood } from '../../context/MoodContext';
+import { useRecommendations } from '../../context/RecommendationContext';
 
 const PostCard = ({ post, onUpdate, onDelete }) => {
   const { user } = useAuth();
@@ -33,9 +34,13 @@ const PostCard = ({ post, onUpdate, onDelete }) => {
   const [toxicityWarning, setToxicityWarning] = useState('');
   const [toxicitySuggestions, setToxicitySuggestions] = useState([]);
   const [liveToxicity, setLiveToxicity] = useState(0);
+  const [positivity, setPositivity] = useState({ kindness: 50, constructiveness: 50, empathy: 50 });
+  const [coachMessage, setCoachMessage] = useState(null);
+  const [toxicityStatus, setToxicityStatus] = useState('Healthy');
   const [isSafe, setIsSafe] = useState(true);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const { activeMood, theme } = useMood();
+  const { recordBehavior } = useRecommendations();
 
   const aiCommentSuggestions = {
     Motivational: ["Incredible work! 🔥", "Super inspiring.", "Huge milestone! 🚀"],
@@ -55,13 +60,18 @@ const PostCard = ({ post, onUpdate, onDelete }) => {
         try {
           const res = await aiAPI.analyzeText(comment);
           const tox = res.data.data.toxicity;
-          setLiveToxicity(tox.score);
+          setLiveToxicity(tox.toxicityScore);
+          setPositivity(tox.positivityScores || { kindness: 50, constructiveness: 50, empathy: 50 });
+          setToxicityStatus(tox.status);
+          setCoachMessage(tox.coachMessage);
           setIsSafe(!tox.isToxic);
-          if (tox.isToxic) {
-            setToxicityWarning(tox.recommendation);
-            setToxicitySuggestions(tox.suggestions || []);
+          
+          if (tox.isToxic || tox.status === 'Warning') {
+            setToxicityWarning('Neural guard flagged potentially harmful content.');
+            setToxicitySuggestions(tox.rewrites || []);
           } else {
             setToxicityWarning('');
+            setToxicitySuggestions([]);
           }
         } catch (err) {
           console.error('Real-time analysis failed:', err);
@@ -70,6 +80,9 @@ const PostCard = ({ post, onUpdate, onDelete }) => {
         }
       } else {
         setLiveToxicity(0);
+        setPositivity({ kindness: 50, constructiveness: 50, empathy: 50 });
+        setToxicityStatus('Healthy');
+        setCoachMessage(null);
         setIsSafe(true);
         setToxicityWarning('');
       }
@@ -101,6 +114,12 @@ const PostCard = ({ post, onUpdate, onDelete }) => {
       newLikes = originalLikes.filter(like => (like.user?._id || like.user) !== currentUserId);
     } else {
       newLikes = [...originalLikes, { user: currentUserId }];
+      // ─ Record behavior signal for the recommendation engine ─
+      recordBehavior('like', {
+        hashtags:  post.aiMetadata?.hashtags || [],
+        mood:      post.aiMetadata?.emotionCategory,
+        creatorId: post.user?._id
+      });
     }
 
     onUpdate({ ...post, likes: newLikes });
@@ -323,38 +342,86 @@ const PostCard = ({ post, onUpdate, onDelete }) => {
           </div>
         )}
         
-        {/* Toxicity Warning */}
+        {/* Healthy Communication Coach */}
         <AnimatePresence>
-          {toxicityWarning && (
+          {comment.trim().length > 3 && (toxicityStatus !== 'Healthy' || coachMessage) && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 overflow-hidden"
+              className={`mb-4 p-4 rounded-xl border overflow-hidden ${
+                toxicityStatus === 'Blocked' ? 'bg-red-500/10 border-red-500/20' :
+                toxicityStatus === 'Warning' ? 'bg-yellow-500/10 border-yellow-500/20' :
+                'bg-emerald-500/10 border-emerald-500/20'
+              }`}
             >
-              <div className="flex items-start gap-3 mb-3">
-                <ExclamationTriangleIcon className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-xs font-semibold text-red-500 mb-1">Content Warning</p>
-                  <p className="text-sm text-red-400/90">{toxicityWarning}</p>
+              <div className="flex items-start gap-3 mb-4">
+                {toxicityStatus === 'Blocked' ? <ExclamationTriangleIcon className="w-5 h-5 text-red-500 shrink-0" /> :
+                 toxicityStatus === 'Warning' ? <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500 shrink-0" /> :
+                 <SparklesIcon className="w-5 h-5 text-emerald-500 shrink-0" />}
+                
+                <div className="flex-1 w-full">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className={`text-xs font-bold uppercase tracking-widest ${
+                      toxicityStatus === 'Blocked' ? 'text-red-500' :
+                      toxicityStatus === 'Warning' ? 'text-yellow-500' : 'text-emerald-500'
+                    }`}>
+                      AI Communication Coach
+                    </p>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm ${
+                      toxicityStatus === 'Blocked' ? 'bg-red-500/20 text-red-500' :
+                      toxicityStatus === 'Warning' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-emerald-500/20 text-emerald-500'
+                    }`}>
+                      {toxicityStatus}
+                    </span>
+                  </div>
+                  {coachMessage && (
+                    <p className={`text-sm ${
+                      toxicityStatus === 'Blocked' ? 'text-red-400/90' :
+                      toxicityStatus === 'Warning' ? 'text-yellow-400/90' : 'text-emerald-400/90'
+                    }`}>{coachMessage}</p>
+                  )}
+                  
+                  {/* Analysis Meters */}
+                  <div className="mt-3 grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                        <span>Toxicity</span>
+                        <span className={liveToxicity > 50 ? 'text-red-500' : 'text-emerald-500'}>{liveToxicity}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+                        <div className={`h-full transition-all duration-300 ${liveToxicity > 50 ? 'bg-red-500' : liveToxicity > 20 ? 'bg-yellow-500' : 'bg-emerald-500'}`} style={{ width: `${liveToxicity}%` }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                        <span>Constructiveness</span>
+                        <span className="text-blue-400">{positivity.constructiveness}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-400 transition-all duration-300" style={{ width: `${positivity.constructiveness}%` }} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {toxicitySuggestions.length > 0 && (
-                <div className="pt-3 border-t border-red-500/20">
-                  <p className="text-xs font-medium text-red-400/70 mb-2">Suggested alternatives:</p>
+              {toxicitySuggestions.length > 0 && toxicityStatus !== 'Healthy' && (
+                <div className={`pt-3 border-t ${toxicityStatus === 'Blocked' ? 'border-red-500/20' : 'border-yellow-500/20'}`}>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Smart Rewrites</p>
                   <div className="flex flex-col gap-1.5">
                     {toxicitySuggestions.map((suggestion, idx) => (
                       <button
                         key={idx}
+                        type="button"
                         onClick={() => {
                           setComment(suggestion);
                           setToxicityWarning('');
                           setToxicitySuggestions([]);
                         }}
-                        className="text-sm px-3 py-2 rounded-lg bg-surface hover:bg-surface-hover border border-border text-foreground transition-colors text-left"
+                        className="text-xs px-3 py-2 rounded-lg bg-black/20 hover:bg-black/40 border border-transparent text-foreground transition-colors text-left font-medium"
                       >
-                        {suggestion}
+                        "{suggestion}"
                       </button>
                     ))}
                   </div>
@@ -367,9 +434,9 @@ const PostCard = ({ post, onUpdate, onDelete }) => {
         {/* Comment Input */}
         <form onSubmit={handleCommentSubmit} className="relative mt-2">
           <div className="flex items-center justify-between mb-1.5 px-1">
-            <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
               <div className={`w-1.5 h-1.5 rounded-full ${analysisLoading ? 'bg-yellow-500 animate-pulse' : isSafe ? 'bg-emerald-500' : 'bg-red-500'}`} />
-              {analysisLoading ? 'Analyzing...' : isSafe ? 'Safe to post' : 'Flagged content'}
+              {analysisLoading ? 'Analyzing Tone...' : isSafe ? 'Ready to post' : 'Adjust tone to post'}
             </span>
           </div>
           

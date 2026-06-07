@@ -88,7 +88,23 @@ const userSchema = new mongoose.Schema({
   interests: [String],
   verified: { type: Boolean, default: false },
   isSeeded: { type: Boolean, default: false },
-  lastActive: { type: Date, default: Date.now }
+  lastActive: { type: Date, default: Date.now },
+
+  // ─── Behavior Tracking (Recommendation Engine signals) ──────────────────────
+  behaviorProfile: {
+    likedHashtags:    { type: [String], default: [] },   // from post likes
+    watchedMoods:     { type: [String], default: [] },   // moods of reels watched
+    searchHistory:    { type: [String], default: [] },   // last 20 search queries
+    roomHistory:      { type: [String], default: [] },   // room IDs visited
+    engagedCreators:  [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // liked/commented
+    contentWeights: {
+      Productive:   { type: Number, default: 0 },
+      Learning:     { type: Number, default: 0 },
+      Motivational: { type: Number, default: 0 },
+      Calm:         { type: Number, default: 0 },
+      Funny:        { type: Number, default: 0 }
+    }
+  }
 }, {
   timestamps: true
 });

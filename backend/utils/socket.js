@@ -195,6 +195,12 @@ const initializeSocket = (server) => {
       }
       roomMembers.get(roomId).add(socket.id);
 
+      // Record room behavior signal for the recommendation engine
+      const RecommendationService = require('../services/RecommendationService');
+      RecommendationService.recordBehavior(socket.userId, { type: 'room', roomId }).catch(err => {
+        console.error('Failed to record room behavior:', err);
+      });
+
       // Broadcast active count to room
       io.to(roomId).emit('roomMembersUpdate', { roomId, count: roomMembers.get(roomId).size });
       

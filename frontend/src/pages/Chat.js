@@ -3,6 +3,7 @@ import { chatAPI } from '../services/chatAPI';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { useMood } from '../context/MoodContext';
+import { useRecommendations } from '../context/RecommendationContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   PaperAirplaneIcon, 
@@ -119,6 +120,7 @@ const CollaborationHub = () => {
   const { user } = useAuth();
   const { activeMood, theme } = useMood();
   const { socket, joinRoom, leaveRoom, sendRoomMessage, onlineUsers } = useSocket();
+  const { recommendedRooms } = useRecommendations();
 
   const [conversations, setConversations] = useState([]);
   const [discoveryUsers, setDiscoveryUsers] = useState([]);
@@ -154,11 +156,8 @@ const CollaborationHub = () => {
 
   const currentIcebreakers = aiIcebreakers[activeMood] || aiIcebreakers.None;
 
-  const sortedRooms = [...publicRooms].sort((a, b) => {
-    if (a.mood === activeMood && b.mood !== activeMood) return -1;
-    if (a.mood !== activeMood && b.mood === activeMood) return 1;
-    return 0;
-  });
+  const displayRooms = recommendedRooms && recommendedRooms.length > 0 ? recommendedRooms : publicRooms;
+  const sortedRooms = displayRooms;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

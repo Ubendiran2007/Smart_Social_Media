@@ -6,12 +6,14 @@ import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { useMood } from "../context/MoodContext";
 import { useWellness } from "../context/WellnessContext";
+import { useRecommendations } from "../context/RecommendationContext";
 import { ArrowPathIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 
 const Reels = () => {
   const { user } = useAuth();
   const { activeMood } = useMood();
   const { focusMode, toggleFocusMode } = useWellness();
+  const { recordBehavior } = useRecommendations();
   const currentMood = activeMood;
   const [reels, setReels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,16 +31,18 @@ const Reels = () => {
       
       if (res.data?.success) {
         const fetchedReels = res.data.reels || [];
-        console.log("Current Mood:", currentMood);
-        console.log("Loaded Reels:", fetchedReels);
-        
         setReels(prev => {
           const updated = reset ? fetchedReels : [...prev, ...fetchedReels];
-          console.log("Filtered Reels (All Loaded):", updated);
           return updated;
         });
-        
         setHasMore(res.data.hasMore);
+
+        // Record watch behavior for each reel's mood so the engine learns
+        fetchedReels.forEach(reel => {
+          if (reel.aiMetadata?.emotionCategory) {
+            recordBehavior('watch', { mood: reel.aiMetadata.emotionCategory });
+          }
+        });
       }
     } catch (err) {
       console.error("Reel Sync Interrupted", err);
