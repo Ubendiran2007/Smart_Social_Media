@@ -27,8 +27,18 @@ const ReelPlayer = ({ reel: initialReel }) => {
   const [newComment, setNewComment] = useState('');
   const [loadingComment, setLoadingComment] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isVideoReady, setIsVideoReady] = useState(false);
 
   const isLiked = reel.likes?.some(like => (like.user?._id || like.user) === user?._id);
+
+  // Validate URL immediately
+  useEffect(() => {
+    console.log("Reel:", reel);
+    console.log("Video URL:", reel.video);
+    if (!reel.video || typeof reel.video !== 'string' || !reel.video.startsWith('http')) {
+      setVideoError(true);
+    }
+  }, [reel.video]);
 
   useEffect(() => {
     const options = { threshold: 0.7 };
@@ -106,25 +116,35 @@ const ReelPlayer = ({ reel: initialReel }) => {
 
   return (
     <div className="relative h-screen w-full bg-black snap-start overflow-hidden flex items-center justify-center group">
-      {videoError ? (
+      {(!reel.video || videoError) ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80 p-6 text-center">
-          <ExclamationTriangleIcon className="w-12 h-12 text-red-500 mb-4 opacity-80" />
+          <ExclamationTriangleIcon className="w-12 h-12 text-white/50 mb-4 opacity-80" />
           <p className="text-sm font-bold text-white mb-2">Video Unavailable</p>
-          <p className="text-xs text-white/50 max-w-xs leading-relaxed">The video format might not be supported or the link is invalid.</p>
+          <p className="text-xs text-white/50 max-w-xs leading-relaxed">This reel is unavailable.</p>
         </div>
       ) : (
-        <video
-          ref={videoRef}
-          src={reel.video}
-          className="h-full w-full object-cover relative z-10 cursor-pointer"
-          loop
-          muted={isMuted}
-          playsInline
-          onTimeUpdate={handleTimeUpdate}
-          onError={() => setVideoError(true)}
-          onClick={() => setIsMuted(!isMuted)}
-          onDoubleClick={handleLike}
-        />
+        <>
+          {!isVideoReady && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black">
+               <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            </div>
+          )}
+          <video
+            src={reel.video}
+            controls
+            muted
+            playsInline
+            preload="metadata"
+            autoPlay
+            onLoadedData={() => console.log("Video loaded")}
+            onCanPlay={() => console.log("Video can play")}
+            onError={(e) => {
+                console.error("VIDEO ERROR", reel.video, e);
+                setVideoError(true);
+            }}
+            className="h-full w-full object-cover relative z-10"
+          />
+        </>
       )}
 
       {/* Like Animation */}
@@ -179,9 +199,9 @@ const ReelPlayer = ({ reel: initialReel }) => {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <h3 className="font-bold text-white text-base">@{reel.user?.username || 'creator'}</h3>
-            {reel.aiMetadata?.emotionCategory && reel.aiMetadata.emotionCategory !== 'None' && (
+            {reel.mood && reel.mood !== 'None' && (
                <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-semibold text-white border border-white/20">
-                 {reel.aiMetadata.emotionCategory}
+                 {reel.mood}
                </span>
             )}
           </div>
@@ -191,7 +211,7 @@ const ReelPlayer = ({ reel: initialReel }) => {
           </p>
           
           <div className="flex flex-wrap gap-1.5 mt-1">
-            {reel.aiMetadata?.hashtags?.map(tag => (
+            {reel.hashtags?.map(tag => (
               <span key={tag} className="text-xs font-semibold text-white/80 hover:text-white cursor-pointer transition-colors">
                 {tag}
               </span>

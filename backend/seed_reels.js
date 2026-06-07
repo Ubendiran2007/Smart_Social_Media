@@ -4,24 +4,28 @@ const User = require('./models/User');
 require('dotenv').config();
 
 const sampleVideos = [
-  'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-  'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-  'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-  'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-  'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-  'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-  'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
-  'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-  'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
-  'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+  'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+  'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+  'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+  'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+  'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+  'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+  'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+  'https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+  'https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
+  'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
 ];
 
-const moods = ['Motivational', 'Calm', 'Productive', 'Learning', 'Funny'];
+const moods = ['PRODUCTIVE', 'LEARNING', 'CALM', 'MOTIVATIONAL', 'FUNNY'];
 
 const seedReels = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to DB. Seeding reels...');
+
+    // Clear old reels
+    await Reel.deleteMany({});
+    console.log('Old reels cleared.');
 
     const user = await User.findOne();
     if (!user) {
@@ -37,11 +41,13 @@ const seedReels = async () => {
         newReels.push({
           user: user._id,
           video: randomVideo,
-          caption: `A beautiful ${mood} moment #${i + 1}`,
+          caption: `A beautiful ${mood.toLowerCase()} moment #${i + 1}`,
+          mood: mood,
+          hashtags: ['#explore', `#${mood.toLowerCase()}`, '#trending'],
           aiMetadata: {
             hashtags: ['#explore', `#${mood.toLowerCase()}`, '#trending'],
             keywords: [mood.toLowerCase(), 'video', 'trending'],
-            emotionCategory: mood
+            emotionCategory: mood.charAt(0) + mood.slice(1).toLowerCase() // Map back to old enum format just in case
           },
           likes: [],
           comments: [],

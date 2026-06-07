@@ -12,16 +12,16 @@ Sentient intelligently understands user mood, interests, toxicity, and professio
 
 ## 🚀 Core Unique Features
 
-### 🧠 1. AI Mood Feed
-AI analyzes captions and engagement to adapt the feed. Toggle between:
+### 🧠 1. AI Smart Feed & Endless Reels
+AI analyzes captions and engagement to adapt your content timeline. Features a TikTok-style infinite scroll Reels player with seamless fallback algorithms. Toggle feeds instantly between:
 - **Motivational** | **Calm** | **Productive** | **Learning** | **Funny**
 
 ### 🛡️ 2. Smart Anti-Toxicity System
 Proactive AI moderation. Intercepts toxic comments *before* they are posted:
 *"Your words have power. This might be perceived as hurtful. Want to rephrase?"*
 
-### ⚡ 3. Productivity Mode
-Hide distracting content. Focus on educational, startup, and career content. Includes an integrated **Pomodoro Timer**.
+### ⚡ 3. Productivity Mode & Activity Center
+Hide distracting content. Focus on educational, startup, and career content. Includes an integrated **Pomodoro Timer**. The live **Activity Center** replaces standard notifications with a real-time, Socket-driven productivity and collaboration hub.
 
 ### 🤝 4. Collaborative Creator Rooms
 Real-time Socket.IO rooms for coding, studying, and brainstorming with shared live editing.
@@ -43,7 +43,7 @@ Beyond simple likes. React with:
 
 ### Frontend (Futuristic Experience)
 - **React 18**: Component-based UI.
-- **Tailwind CSS**: Dark Glassmorphism design system.
+- **Tailwind CSS**: Modern, high-density professional SaaS design system.
 - **Framer Motion**: Smooth, cinematic animations.
 - **Context API**: Global state for Mood & Auth.
 

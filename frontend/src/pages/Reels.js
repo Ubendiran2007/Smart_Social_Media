@@ -27,7 +27,15 @@ const Reels = () => {
       
       if (res.data?.success) {
         const fetchedReels = res.data.reels || [];
-        setReels(prev => reset ? fetchedReels : [...prev, ...fetchedReels]);
+        console.log("Current Mood:", currentMood);
+        console.log("Loaded Reels:", fetchedReels);
+        
+        setReels(prev => {
+          const updated = reset ? fetchedReels : [...prev, ...fetchedReels];
+          console.log("Filtered Reels (All Loaded):", updated);
+          return updated;
+        });
+        
         setHasMore(res.data.hasMore);
       }
     } catch (err) {

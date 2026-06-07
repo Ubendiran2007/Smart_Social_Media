@@ -73,9 +73,9 @@ const getReels = async (req, res) => {
 
     console.log(`Backend: Fetching reels - Limit: ${limit}, Mood: ${moodFilter}, Viewed: ${viewedIds.length}`);
 
-    let query = {};
-    if (moodFilter && moodFilter !== 'None') {
-      query['aiMetadata.emotionCategory'] = moodFilter;
+    let query = { video: { $exists: true, $ne: null } };
+    if (moodFilter && moodFilter !== 'None' && moodFilter !== 'GENERAL') {
+      query.mood = moodFilter.toUpperCase();
     }
 
     // Attempt 1: Fetch unseen reels matching mood
@@ -91,7 +91,7 @@ const getReels = async (req, res) => {
       const moodCount = await Reel.countDocuments(query);
       if (moodCount === 0) {
         console.log(`No reels found for ${moodFilter}. Falling back to general pool.`);
-        query = {}; // General pool
+        query = { video: { $exists: true, $ne: null } }; // General pool
         reels = await Reel.find({ _id: { $nin: viewedIds } })
           .populate('user', 'username fullName avatar')
           .populate('likes.user', 'username fullName avatar')
@@ -123,6 +123,12 @@ const getReels = async (req, res) => {
         { path: 'comments.user', select: 'username fullName avatar' }
       ]);
     }
+
+    // Log the first reel URL explicitly as requested for Network Validation debugging
+    if (reels.length > 0) {
+      console.log(`First reel URL being returned: ${reels[0].video}`);
+    }
+    console.log("Reels Returned:", reels.length);
 
     res.json({ 
       success: true, 
