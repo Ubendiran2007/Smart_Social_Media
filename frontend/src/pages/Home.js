@@ -68,6 +68,8 @@ const Home = () => {
 
   const handleDeletePost = (postId) => {
     setPosts(prev => prev.filter(p => p._id !== postId));
+  };
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
