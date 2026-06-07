@@ -13,7 +13,7 @@ import {
 import { GlassCard, AIBadge } from '../components/ui/SiliconValley';
 import HashtagIntelligencePanel, { HashtagAutocomplete } from '../components/hashtags/HashtagIntelligencePanel';
 import { useMood } from '../context/MoodContext';
-import { generateImageCaptions } from '../utils/imageCaptionEngine';
+import { advancedAnalyzeImage, generateAdvancedCaptions } from '../utils/advancedCaptionEngine';
 
 const MOOD_GRADIENT = {
   Productive: 'from-blue-600 to-cyan-500',
@@ -35,10 +35,13 @@ const Create = () => {
 
   // Caption AI state
   const [captionSuggestions, setCaptionSuggestions] = useState([]);
-  const [selectedCaption, setSelectedCaption] = useState(null);
+  const [hashtagGroups, setHashtagGroups] = useState([]);
+  const [selectedCaptionIndex, setSelectedCaptionIndex] = useState(null);
   const [generatingCaptions, setGeneratingCaptions] = useState(false);
-  const [sceneLabel, setSceneLabel] = useState('');
+  const [analysisData, setAnalysisData] = useState(null);
   const [captionsReady, setCaptionsReady] = useState(false);
+  const [captionStyle, setCaptionStyle] = useState('Creative'); // Default style
+  const captionStyles = ['Creative', 'Professional', 'Funny', 'Deep', 'Motivational'];
 
   // Insert hashtag into caption
   const handleInsertHashtag = useCallback((tag) => {
@@ -55,20 +58,35 @@ const Create = () => {
     setFile(selectedFile);
     setPreviewUrl(URL.createObjectURL(selectedFile));
     setCaptionSuggestions([]);
+    setHashtagGroups([]);
     setCaptionsReady(false);
-    setSelectedCaption(null);
+    setSelectedCaptionIndex(null);
+    setAnalysisData(null);
   };
 
-  const handleGenerateCaptions = async () => {
+  const handleGenerateCaptions = async (forcedStyle = null) => {
     if (!file) return;
     setGeneratingCaptions(true);
     setCaptionsReady(false);
     setCaptionSuggestions([]);
+    setHashtagGroups([]);
+    setSelectedCaptionIndex(null);
 
     try {
-      const { captions, sceneLabel: detected } = await generateImageCaptions(file, activeMood);
+      const targetStyle = forcedStyle || captionStyle;
+      let analysis = analysisData;
+      
+      // Only run image analysis if we haven't done it yet for this file
+      if (!analysis) {
+        analysis = await advancedAnalyzeImage(file);
+        setAnalysisData(analysis);
+      }
+
+      // Generate captions based on analysis, active mood, and selected style
+      const { captions, hashtagGroups: tags } = generateAdvancedCaptions(analysis, activeMood, targetStyle);
+      
       setCaptionSuggestions(captions);
-      setSceneLabel(detected || '');
+      setHashtagGroups(tags);
       setCaptionsReady(true);
     } catch (err) {
       console.error('Caption generation failed:', err);
@@ -78,15 +96,23 @@ const Create = () => {
     }
   };
 
-  const handleSelectCaption = (cap) => {
-    setCaption(cap);
-    setSelectedCaption(cap);
+  const handleSelectCaption = (index) => {
+    const cap = captionSuggestions[index];
+    const tags = hashtagGroups[index] ? hashtagGroups[index].join(' ') : '';
+    const fullCaption = `${cap}\n\n${tags}`;
+    setCaption(fullCaption);
+    setSelectedCaptionIndex(index);
   };
 
   const handleCaptionChange = (e) => {
     const val = typeof e === 'string' ? e : e.target.value;
     setCaption(val);
-    if (val !== selectedCaption) setSelectedCaption(null);
+    setSelectedCaptionIndex(null);
+  };
+
+  const handleStyleChange = (style) => {
+    setCaptionStyle(style);
+    handleGenerateCaptions(style);
   };
 
   const handleSubmit = async (e) => {
@@ -129,8 +155,10 @@ const Create = () => {
     setPreviewUrl(null);
     setCaption('');
     setCaptionSuggestions([]);
+    setHashtagGroups([]);
     setCaptionsReady(false);
-    setSelectedCaption(null);
+    setSelectedCaptionIndex(null);
+    setAnalysisData(null);
   };
 
   const gradient = MOOD_GRADIENT[activeMood] || MOOD_GRADIENT.None;
@@ -226,12 +254,20 @@ const Create = () => {
                     >
                       <XMarkIcon className="w-4 h-4" />
                     </button>
-                    {/* Scene label overlay */}
-                    {sceneLabel && (
-                      <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-xl bg-black/70 backdrop-blur-md">
-                        <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">
-                          Detected: {sceneLabel}
-                        </span>
+                    {/* Analysis results overlay */}
+                    {analysisData && (
+                      <div className="absolute bottom-3 left-3 px-3 py-2 rounded-xl bg-black/80 backdrop-blur-md max-w-[90%]">
+                        <p className="text-[9px] font-black text-cyan-400 uppercase tracking-widest mb-1">Detected:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {[...(analysisData.objects || []), ...(analysisData.themes || []), ...(analysisData.styles || [])]
+                            .filter(Boolean)
+                            .slice(0, 5)
+                            .map((tag, idx) => (
+                            <span key={idx} className="text-[8px] font-bold text-white bg-white/10 px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <CheckIcon className="w-2 h-2 text-cyan-400" /> {tag}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -273,28 +309,45 @@ const Create = () => {
                 )}
               </AnimatePresence>
 
-              {/* ── 3. Caption Suggestions ─────────────────────────── */}
+              {/* ── 3. Caption Suggestions & Analysis ─────────────────────────── */}
               <AnimatePresence>
                 {captionsReady && captionSuggestions.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="space-y-3 overflow-hidden"
+                    className="space-y-5 overflow-hidden"
                   >
-                    <div className="flex items-center justify-between px-1">
+                    {/* Style Regeneration Options */}
+                    <div className="space-y-2">
+                      <p className="text-[9px] font-black uppercase tracking-[0.25em] text-white/30 px-1">
+                        Select a Vibe:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {captionStyles.map(style => (
+                          <button
+                            key={style}
+                            type="button"
+                            onClick={() => handleStyleChange(style)}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                              captionStyle === style
+                                ? `bg-gradient-to-r ${gradient} text-white shadow-lg`
+                                : 'bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white'
+                            }`}
+                          >
+                            {style}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between px-1 pt-2 border-t border-white/5">
                       <p className="text-[9px] font-black uppercase tracking-[0.25em] text-white/30">
                         Pick a caption — or write your own below
                       </p>
-                      <button
-                        type="button"
-                        onClick={handleGenerateCaptions}
-                        className="text-[9px] font-black text-purple-400 hover:text-purple-300 uppercase tracking-widest transition-colors"
-                      >
-                        Regenerate ↺
-                      </button>
                     </div>
-                    <div className="space-y-2">
+
+                    <div className="space-y-3">
                       {captionSuggestions.map((cap, i) => (
                         <motion.button
                           key={i}
@@ -303,21 +356,34 @@ const Create = () => {
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: i * 0.07 }}
                           whileHover={{ scale: 1.01 }}
-                          onClick={() => handleSelectCaption(cap)}
-                          className={`w-full text-left px-5 py-4 rounded-2xl border transition-all flex items-start justify-between gap-3 group ${
-                            selectedCaption === cap
-                              ? 'bg-purple-500/15 border-purple-500/40 text-white'
-                              : 'bg-white/3 border-white/5 text-white/70 hover:bg-white/8 hover:border-white/15'
+                          onClick={() => handleSelectCaption(i)}
+                          className={`w-full text-left px-5 py-4 rounded-2xl border transition-all flex flex-col gap-3 group ${
+                            selectedCaptionIndex === i
+                              ? 'bg-purple-500/15 border-purple-500/40'
+                              : 'bg-white/3 border-white/5 hover:bg-white/8 hover:border-white/15'
                           }`}
                         >
-                          <span className="text-sm leading-relaxed">{cap}</span>
-                          <div className={`flex-shrink-0 w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
-                            selectedCaption === cap
-                              ? 'bg-purple-500 border-purple-500'
-                              : 'border-white/20 group-hover:border-white/40'
-                          }`}>
-                            {selectedCaption === cap && <CheckIcon className="w-3 h-3 text-white" />}
+                          <div className="flex items-start justify-between gap-3 w-full">
+                            <span className={`text-sm leading-relaxed ${selectedCaptionIndex === i ? 'text-white' : 'text-white/70'}`}>{cap}</span>
+                            <div className={`flex-shrink-0 w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                              selectedCaptionIndex === i
+                                ? 'bg-purple-500 border-purple-500'
+                                : 'border-white/20 group-hover:border-white/40'
+                            }`}>
+                              {selectedCaptionIndex === i && <CheckIcon className="w-3 h-3 text-white" />}
+                            </div>
                           </div>
+                          
+                          {/* Hashtag Group Preview */}
+                          {hashtagGroups[i] && (
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {hashtagGroups[i].map(tag => (
+                                <span key={tag} className={`text-[10px] font-bold ${selectedCaptionIndex === i ? 'text-cyan-300' : 'text-cyan-500/50 group-hover:text-cyan-400/70'}`}>
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </motion.button>
                       ))}
                     </div>
