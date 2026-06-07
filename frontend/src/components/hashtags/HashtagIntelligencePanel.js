@@ -13,14 +13,7 @@ const debounce = (fn, ms) => {
   };
 };
 
-const MOOD_COLORS = {
-  Productive: 'from-blue-500/20 to-cyan-500/20 border-blue-500/20 text-blue-400',
-  Motivational: 'from-orange-500/20 to-red-500/20 border-orange-500/20 text-orange-400',
-  Calm: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/20 text-emerald-400',
-  Learning: 'from-purple-500/20 to-violet-500/20 border-purple-500/20 text-purple-400',
-  Funny: 'from-yellow-500/20 to-amber-500/20 border-yellow-500/20 text-yellow-400',
-  None: 'from-white/5 to-white/5 border-white/10 text-white/40',
-};
+
 
 /**
  * HashtagIntelligencePanel
@@ -89,8 +82,8 @@ const HashtagIntelligencePanel = ({ caption, mood: activeMood, onInsertHashtag }
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
-          <HashtagIcon className="w-4 h-4 text-purple-400" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+          <HashtagIcon className="w-4 h-4 text-accent" />
+          <span className="text-xs font-semibold text-foreground">
             Hashtag Intelligence
           </span>
         </div>
@@ -102,7 +95,7 @@ const HashtagIntelligencePanel = ({ caption, mood: activeMood, onInsertHashtag }
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-gradient-to-r border ${MOOD_COLORS[detectedMood] || MOOD_COLORS.None}`}
+                className="px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-accent/10 border border-accent/20 text-accent"
               >
                 {detectedMood}
               </motion.div>
@@ -110,15 +103,8 @@ const HashtagIntelligencePanel = ({ caption, mood: activeMood, onInsertHashtag }
           </AnimatePresence>
           {/* Analyzing indicator */}
           {loading && (
-            <div className="flex gap-0.5 items-center">
-              {[0,1,2].map(i => (
-                <motion.div
-                  key={i}
-                  animate={{ scaleY: [1, 2, 1] }}
-                  transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.15 }}
-                  className="w-0.5 h-2 bg-purple-400 rounded-full origin-bottom"
-                />
-              ))}
+            <div className="flex gap-1 items-center">
+              <div className="w-4 h-4 border-2 border-muted border-t-accent rounded-full animate-spin" />
             </div>
           )}
         </div>
@@ -134,9 +120,9 @@ const HashtagIntelligencePanel = ({ caption, mood: activeMood, onInsertHashtag }
             exit={{ opacity: 0, y: -8 }}
             className="space-y-2"
           >
-            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-purple-400/70 flex items-center gap-1.5 px-1">
-              <SparklesIcon className="w-3 h-3" />
-              Live Suggestions — Click to insert
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 px-1">
+              <SparklesIcon className="w-4 h-4" />
+              Live Suggestions
             </p>
             <div className="flex flex-wrap gap-2">
               {suggestions.map((tag, i) => (
@@ -146,12 +132,12 @@ const HashtagIntelligencePanel = ({ caption, mood: activeMood, onInsertHashtag }
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.04 }}
-                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => onInsertHashtag(`#${tag}`)}
-                  className="group relative px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-purple-500/40 hover:bg-purple-500/10 transition-all"
+                  className="group relative px-3 py-1.5 rounded-lg bg-surface border border-border hover:border-accent hover:bg-surface-hover transition-colors"
                 >
-                  <span className="text-[11px] font-bold text-cyan-400 group-hover:text-cyan-300 group-hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] transition-all">
+                  <span className="text-xs font-semibold text-foreground group-hover:text-accent transition-colors">
                     #{tag}
                   </span>
                 </motion.button>
@@ -166,9 +152,9 @@ const HashtagIntelligencePanel = ({ caption, mood: activeMood, onInsertHashtag }
             exit={{ opacity: 0 }}
             className="space-y-2"
           >
-            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-orange-400/70 flex items-center gap-1.5 px-1">
-              <FireIcon className="w-3 h-3" />
-              Trending Now — from the network
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 px-1">
+              <FireIcon className="w-4 h-4" />
+              Trending Now
             </p>
             <div className="flex flex-wrap gap-2">
               {trending.map((t, i) => (
@@ -178,16 +164,16 @@ const HashtagIntelligencePanel = ({ caption, mood: activeMood, onInsertHashtag }
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.05 }}
-                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => onInsertHashtag(t.tag)}
-                  className="group flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-orange-400/40 hover:bg-orange-400/5 transition-all"
+                  className="group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface border border-border hover:border-accent hover:bg-surface-hover transition-colors"
                 >
-                  <span className="text-[11px] font-bold text-orange-400 group-hover:text-orange-300 transition-colors">
+                  <span className="text-xs font-semibold text-foreground group-hover:text-accent transition-colors">
                     {t.tag}
                   </span>
-                  <span className="text-[8px] text-white/20 font-black uppercase tracking-wider">
-                    {t.count}×
+                  <span className="text-[10px] bg-surface-hover px-1.5 py-0.5 rounded text-muted-foreground font-semibold">
+                    {t.count}
                   </span>
                 </motion.button>
               ))}
@@ -198,9 +184,9 @@ const HashtagIntelligencePanel = ({ caption, mood: activeMood, onInsertHashtag }
             key="empty"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="px-4 py-3 rounded-2xl bg-white/2 border border-dashed border-white/5 text-center"
+            className="px-4 py-3 rounded-xl bg-surface border border-dashed border-border text-center"
           >
-            <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">
+            <p className="text-xs font-medium text-muted-foreground">
               Start typing your caption to generate hashtags
             </p>
           </motion.div>
@@ -278,18 +264,18 @@ export const HashtagAutocomplete = ({ value, onChange, mood = 'None', ...textare
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 6 }}
-            className="absolute left-0 bottom-full mb-2 z-50 bg-black/90 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl min-w-[200px]"
+            className="absolute left-0 bottom-full mb-2 z-50 bg-surface border border-border rounded-xl overflow-hidden shadow-lg min-w-[200px]"
           >
             {autocompleteItems.map((item, i) => (
               <button
                 key={item.tag}
                 type="button"
                 onMouseDown={() => insertTag(item.tag)}
-                className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-purple-500/15 transition-colors group"
+                className="w-full flex items-center justify-between px-4 py-2 hover:bg-surface-hover transition-colors group"
               >
-                <span className="text-sm font-bold text-cyan-400 group-hover:text-cyan-300">{item.tag}</span>
+                <span className="text-sm font-medium text-foreground group-hover:text-accent">{item.tag}</span>
                 {item.count > 0 && (
-                  <span className="text-[9px] text-white/20 font-black uppercase ml-4 flex items-center gap-1">
+                  <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
                     <ArrowTrendingUpIcon className="w-3 h-3" /> {item.count}
                   </span>
                 )}
@@ -315,12 +301,12 @@ export const ClickableHashtags = ({ text, className = '' }) => {
         part.startsWith('#') ? (
           <motion.span
             key={i}
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ y: -1 }}
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/hashtag/${encodeURIComponent(part.slice(1))}`);
             }}
-            className="text-cyan-400 hover:text-cyan-300 cursor-pointer hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] transition-all font-bold inline-block"
+            className="text-accent hover:opacity-80 cursor-pointer font-semibold inline-block transition-all"
           >
             {part}
           </motion.span>
@@ -340,21 +326,21 @@ export const HashtagPill = ({ tag, count, variant = 'default', className = '' })
   const cleanTag = tag.replace('#', '');
 
   const variants = {
-    default: 'bg-white/5 border-white/5 text-white/40 hover:border-cyan-400/30 hover:text-cyan-400',
-    trending: 'bg-orange-500/5 border-orange-500/10 text-orange-400 hover:border-orange-400/40 hover:bg-orange-500/10',
-    active: 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400 hover:border-cyan-400/50',
+    default: 'bg-surface border-border text-foreground hover:border-accent hover:text-accent',
+    trending: 'bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500/20',
+    active: 'bg-accent/10 border-accent/20 text-accent hover:bg-accent/20',
   };
 
   return (
     <motion.button
-      whileHover={{ scale: 1.04, y: -2 }}
-      whileTap={{ scale: 0.96 }}
+      whileHover={{ y: -1 }}
+      whileTap={{ scale: 0.98 }}
       onClick={() => navigate(`/hashtag/${encodeURIComponent(cleanTag)}`)}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-bold transition-all ${variants[variant]} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors ${variants[variant]} ${className}`}
     >
       <span>#{cleanTag}</span>
       {count !== undefined && (
-        <span className="opacity-40 text-[8px] font-black">{count}</span>
+        <span className="text-[10px] opacity-70 bg-black/10 px-1 rounded">{count}</span>
       )}
     </motion.button>
   );
