@@ -2,13 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { chatAPI } from '../services/chatAPI';
 import { useSocket } from '../context/SocketContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PaperAirplaneIcon, ChatBubbleBottomCenterTextIcon, SparklesIcon } from '@heroicons/react/24/outline';
-import { GlassCard, AIBadge } from '../components/ui/SiliconValley';
+import { 
+  PaperAirplaneIcon, 
+  HashtagIcon,
+  VideoCameraIcon,
+  UsersIcon,
+  LightBulbIcon,
+  BoltIcon
+} from '@heroicons/react/24/outline';
+import { AIBadge } from '../components/ui/SiliconValley';
 
 const Chat = () => {
   const [conversations, setConversations] = useState([]);
   const [discoveryUsers, setDiscoveryUsers] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
+  const [selectedRoom, setSelectedRoom] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -17,6 +25,21 @@ const Chat = () => {
   const typingTimeoutRef = useRef(null);
 
   const { socket, sendMessage, startTyping, stopTyping, onlineUsers } = useSocket();
+
+  const publicRooms = [
+    { id: 'room-startup', name: 'Startup Founders', icon: '🚀', activeCount: 142 },
+    { id: 'room-coding', name: 'Coding Discussions', icon: '💻', activeCount: 89 },
+    { id: 'room-ai', name: 'AI & Machine Learning', icon: '🤖', activeCount: 204 },
+    { id: 'room-study', name: 'Study Sessions', icon: '📚', activeCount: 56 },
+    { id: 'room-design', name: 'Design Critiques', icon: '🎨', activeCount: 34 }
+  ];
+
+  const aiIcebreakers = [
+    "Ask about their latest MERN project",
+    "Discuss recent YC startup ideas",
+    "Share some modern UI/UX learning resources",
+    "Ask for a code review on React hooks"
+  ];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -41,7 +64,6 @@ const Chat = () => {
         if (selectedChat && (message.sender._id === selectedChat._id || message.receiver._id === selectedChat._id)) {
           setMessages(prev => [...prev, message]);
         } else {
-          // Update unread count for other conversations
           setConversations(prev => prev.map(conv => {
             if (conv.user._id === message.sender._id) {
               return { ...conv, unreadCount: (conv.unreadCount || 0) + 1 };
@@ -92,7 +114,6 @@ const Chat = () => {
     try {
       const response = await chatAPI.getConversation(userId);
       setMessages(response.data.messages || []);
-      // Reset unread count locally
       setConversations(prev => prev.map(conv => {
         if (conv.user._id === userId) return { ...conv, unreadCount: 0 };
         return conv;
@@ -115,86 +136,178 @@ const Chat = () => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedChat) return;
+    if (!newMessage.trim() || (!selectedChat && !selectedRoom)) return;
 
     try {
-      stopTyping(selectedChat._id);
-      const tempMsg = {
-        sender: { _id: 'me' },
-        message: newMessage,
-        createdAt: new Date()
-      };
-      setMessages(prev => [...prev, tempMsg]);
-      
-      const res = await chatAPI.sendMessage(selectedChat._id, newMessage);
-      sendMessage(selectedChat._id, newMessage);
-      
-      // Update local message with real ID and user data
-      setMessages(prev => prev.map(m => m === tempMsg ? res.data.message : m));
+      if (selectedChat) {
+        stopTyping(selectedChat._id);
+        const tempMsg = {
+          sender: { _id: 'me' },
+          message: newMessage,
+          createdAt: new Date()
+        };
+        setMessages(prev => [...prev, tempMsg]);
+        
+        const res = await chatAPI.sendMessage(selectedChat._id, newMessage);
+        sendMessage(selectedChat._id, newMessage);
+        
+        setMessages(prev => prev.map(m => m === tempMsg ? res.data.message : m));
+      } else if (selectedRoom) {
+        // Mock sending to a public room
+        const tempMsg = {
+          sender: { _id: 'me' },
+          message: newMessage,
+          createdAt: new Date()
+        };
+        setMessages(prev => [...prev, tempMsg]);
+      }
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
     }
   };
 
+  const handleSelectUser = (user) => {
+    setSelectedRoom(null);
+    setSelectedChat(user);
+    loadMessages(user._id);
+  };
+
+  const handleSelectRoom = (room) => {
+    setSelectedChat(null);
+    setSelectedRoom(room);
+    setMessages([]); // Mock empty messages for room
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <div className="w-12 h-12 rounded-full border-4 border-t-purple-500 animate-spin" />
+        <div className="w-8 h-8 rounded-full border-4 border-t-accent border-border animate-spin" />
       </div>
     );
   }
 
-  return (
-    <div className="flex h-[calc(100vh-160px)] gap-6 max-w-7xl mx-auto py-4 px-4">
-      {/* Conversations List */}
-      <GlassCard className="w-1/3 flex flex-col overflow-hidden">
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
-          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-white italic">Neural Links</h2>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{onlineUsers.size} Active</span>
+  const renderHomeState = () => (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex-1 overflow-y-auto p-8"
+    >
+      <div className="max-w-3xl mx-auto space-y-12">
+        <div className="text-center space-y-4 pt-10">
+          <h2 className="text-3xl font-bold text-foreground">Welcome to the Hub</h2>
+          <p className="text-muted-foreground text-sm max-w-lg mx-auto">
+            Join a public room to collaborate with others, or start a direct message with creators in your network.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="card-base p-6 hover:border-accent transition-colors cursor-pointer" onClick={() => handleSelectRoom(publicRooms[0])}>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-2xl">{publicRooms[0].icon}</span>
+              <h3 className="font-semibold text-foreground">{publicRooms[0].name}</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">Discuss MVP launches, funding, and growth strategies with other founders.</p>
+            <div className="flex items-center justify-between mt-auto">
+              <span className="text-xs font-medium text-emerald-500">{publicRooms[0].activeCount} Active</span>
+              <span className="text-xs font-medium text-accent">Join Room &rarr;</span>
+            </div>
+          </div>
+          <div className="card-base p-6 hover:border-accent transition-colors cursor-pointer" onClick={() => handleSelectRoom(publicRooms[1])}>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-2xl">{publicRooms[1].icon}</span>
+              <h3 className="font-semibold text-foreground">{publicRooms[1].name}</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">Collaborate on bugs, share repos, and pair program in real time.</p>
+            <div className="flex items-center justify-between mt-auto">
+              <span className="text-xs font-medium text-emerald-500">{publicRooms[1].activeCount} Active</span>
+              <span className="text-xs font-medium text-accent">Join Room &rarr;</span>
+            </div>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto scrollbar-hide space-y-2">
+
+        <div className="card-base p-6 bg-surface-hover/50">
+          <div className="flex items-center gap-2 mb-4">
+            <LightBulbIcon className="w-5 h-5 text-accent" />
+            <h3 className="font-semibold text-foreground">AI Icebreakers</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {aiIcebreakers.map((ib, i) => (
+              <div key={i} className="p-3 rounded-lg bg-surface border border-border text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
+                "{ib}"
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  return (
+    <div className="flex h-[calc(100vh-160px)] gap-6 max-w-7xl mx-auto py-4 px-4">
+      {/* Sidebar */}
+      <div className="w-72 flex flex-col overflow-hidden card-base p-0 border-r border-border rounded-xl">
+        <div className="p-4 border-b border-border bg-surface">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <UsersIcon className="w-4 h-4 text-muted-foreground" /> Collaboration Hub
+          </h2>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto scrollbar-hide py-4 space-y-6 bg-surface">
+          
+          {/* Public Rooms */}
+          <div className="px-4">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Public Rooms</h3>
+            <div className="space-y-1">
+              {publicRooms.map(room => (
+                <div 
+                  key={room.id}
+                  onClick={() => handleSelectRoom(room)}
+                  className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${selectedRoom?.id === room.id ? 'bg-accent/10 text-accent' : 'text-muted-foreground hover:bg-surface-hover hover:text-foreground'}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <HashtagIcon className="w-4 h-4" />
+                    <span className="text-sm font-medium truncate">{room.name}</span>
+                  </div>
+                  <span className="text-[10px] font-medium bg-surface-hover px-1.5 py-0.5 rounded">{room.activeCount}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Conversations */}
           {conversations.length > 0 && (
-            <div className="px-6 py-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-4">Active Frequencies</h3>
+            <div className="px-4">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Direct Messages</h3>
               <div className="space-y-1">
                 {conversations.map((conv) => {
                   const isOnline = onlineUsers.has(conv.user._id);
                   return (
                     <motion.div
                       key={conv.user._id}
-                      whileHover={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                      onClick={() => {
-                        setSelectedChat(conv.user);
-                        loadMessages(conv.user._id);
-                      }}
-                      className={`p-4 cursor-pointer rounded-2xl transition-all relative ${
-                        selectedChat?._id === conv.user._id ? 'bg-white/10' : ''
+                      onClick={() => handleSelectUser(conv.user)}
+                      className={`p-2 cursor-pointer rounded-lg transition-all relative flex items-center gap-3 ${
+                        selectedChat?._id === conv.user._id ? 'bg-surface-hover' : 'hover:bg-surface-hover'
                       }`}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="relative">
-                          <img
-                            src={conv.user.avatar}
-                            alt=""
-                            className={`w-10 h-10 rounded-xl object-cover border-2 ${isOnline ? 'border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'border-white/5 opacity-50'}`}
-                          />
-                          {isOnline && <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-black" />}
+                      <div className="relative shrink-0">
+                        <img
+                          src={conv.user.avatar}
+                          alt=""
+                          className={`w-8 h-8 rounded-md object-cover ${!isOnline && 'opacity-60 grayscale'}`}
+                        />
+                        {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-surface" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-foreground truncate text-sm">{conv.user.fullName}</p>
+                          {conv.unreadCount > 0 && (
+                            <span className="w-2 h-2 rounded-full bg-accent" />
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="font-black text-white truncate text-[11px] uppercase tracking-widest italic">{conv.user.fullName}</p>
-                            {conv.unreadCount > 0 && (
-                              <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse shadow-[0_0_10px_rgba(139,92,246,0.8)]" />
-                            )}
-                          </div>
-                          <p className={`text-[9px] truncate font-bold uppercase tracking-tighter ${isOnline ? 'text-emerald-400' : 'text-white/20'}`}>
-                            {conv.lastMessage?.message || 'Sync Established'}
-                          </p>
-                        </div>
+                        <p className="text-xs truncate text-muted-foreground">
+                          {conv.lastMessage?.message || 'Sync Established'}
+                        </p>
                       </div>
                     </motion.div>
                   );
@@ -203,10 +316,10 @@ const Chat = () => {
             </div>
           )}
 
-          {/* Discovery Section */}
-          <div className="px-6 py-4">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-4 flex items-center gap-2">
-              Neural Discovery <SparklesIcon className="w-3 h-3 text-purple-400" />
+          {/* Suggested Partners */}
+          <div className="px-4">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+              Suggested Partners
             </h3>
             <div className="space-y-1">
               {discoveryUsers.filter(u => !conversations.some(c => c.user._id === u._id)).map((u) => {
@@ -214,31 +327,27 @@ const Chat = () => {
                 return (
                   <motion.div
                     key={u._id}
-                    whileHover={{ x: 5, backgroundColor: 'rgba(255,255,255,0.03)' }}
-                    onClick={() => {
-                      setSelectedChat(u);
-                      loadMessages(u._id);
-                    }}
-                    className="p-4 cursor-pointer rounded-2xl transition-all group border border-transparent hover:border-white/5"
+                    onClick={() => handleSelectUser(u)}
+                    className="p-2 cursor-pointer rounded-lg transition-all hover:bg-surface-hover"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
+                    <div className="flex items-start gap-3">
+                      <div className="relative shrink-0 mt-0.5">
                         <img
                           src={u.avatar}
                           alt=""
-                          className={`w-10 h-10 rounded-xl object-cover border border-white/10 ${isOnline ? 'opacity-100' : 'opacity-40 grayscale'}`}
+                          className={`w-8 h-8 rounded-md object-cover ${!isOnline && 'opacity-60 grayscale'}`}
                         />
-                        {isOnline && <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-black" />}
+                        {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-surface" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="font-black text-white truncate text-[11px] uppercase tracking-widest italic">{u.fullName}</p>
-                          <AIBadge className="scale-75 origin-right opacity-0 group-hover:opacity-100 transition-opacity">
-                            {u.moodAnalytics?.currentMood || 'NEURAL'}
-                          </AIBadge>
+                          <p className="font-medium text-foreground truncate text-sm">{u.fullName}</p>
                         </div>
-                        <p className="text-[9px] truncate font-bold uppercase tracking-tighter text-white/20">
-                          {u.bio || 'Neural Creator'}
+                        <p className="text-[10px] text-accent font-medium mt-0.5">
+                          {u.moodAnalytics?.currentMood || 'Productive'} Mood
+                        </p>
+                        <p className="text-xs truncate text-muted-foreground mt-0.5">
+                          {u.bio || 'MERN Developer'}
                         </p>
                       </div>
                     </div>
@@ -248,74 +357,101 @@ const Chat = () => {
             </div>
           </div>
         </div>
-      </GlassCard>
+      </div>
 
       {/* Chat Area */}
-      <GlassCard className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="flex-1 flex flex-col overflow-hidden bg-surface border border-border rounded-xl">
         <AnimatePresence mode="wait">
-          {selectedChat ? (
+          {!selectedChat && !selectedRoom ? (
+            renderHomeState()
+          ) : (
             <motion.div
-              key={selectedChat._id}
+              key={selectedChat?._id || selectedRoom?.id}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col"
             >
               {/* Chat Header */}
-              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/2 backdrop-blur-xl">
-                <div className="flex items-center gap-4">
-                  <img
-                    src={selectedChat.avatar || `https://ui-avatars.com/api/?name=${selectedChat.username}&background=9333ea&color=fff`}
-                    alt=""
-                    className="w-10 h-10 rounded-xl object-cover border border-white/10 shadow-2xl"
-                  />
+              <div className="p-4 border-b border-border flex items-center justify-between bg-surface-hover/30">
+                <div className="flex items-center gap-3">
+                  {selectedRoom ? (
+                    <div className="w-10 h-10 rounded-lg bg-surface border border-border flex items-center justify-center text-xl">
+                      {selectedRoom.icon}
+                    </div>
+                  ) : (
+                    <img
+                      src={selectedChat.avatar}
+                      alt=""
+                      className="w-10 h-10 rounded-lg object-cover border border-border"
+                    />
+                  )}
                   <div>
-                    <p className="font-black text-white uppercase text-xs tracking-widest italic">{selectedChat.fullName}</p>
-                    <p className={`text-[10px] font-bold uppercase tracking-tighter flex items-center gap-2 ${isTyping ? 'text-purple-400' : 'text-emerald-400'}`}>
-                      {isTyping ? (
-                        <>
-                          <div className="flex gap-0.5">
-                            <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-1 h-1 rounded-full bg-purple-500" />
-                            <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-1 h-1 rounded-full bg-purple-500" />
-                            <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-1 h-1 rounded-full bg-purple-500" />
-                          </div>
-                          Neural Transmission...
-                        </>
-                      ) : (
-                        <>
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          {onlineUsers.has(selectedChat._id) ? 'Direct Connection Active' : 'Relay Link (Offline)'}
-                        </>
-                      )}
+                    <p className="font-semibold text-foreground text-sm">
+                      {selectedRoom ? selectedRoom.name : selectedChat.fullName}
                     </p>
+                    {selectedRoom ? (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        {selectedRoom.activeCount} members online
+                      </p>
+                    ) : (
+                      <p className="text-xs flex items-center gap-1.5">
+                        {isTyping ? (
+                          <span className="text-accent">typing...</span>
+                        ) : (
+                          <>
+                            <span className={`w-1.5 h-1.5 rounded-full ${onlineUsers.has(selectedChat._id) ? 'bg-emerald-500' : 'bg-muted'}`} />
+                            <span className="text-muted-foreground">{onlineUsers.has(selectedChat._id) ? 'Online' : 'Offline'}</span>
+                          </>
+                        )}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <AIBadge>{selectedChat.username.toUpperCase()}</AIBadge>
+                <div className="flex items-center gap-2">
+                  {selectedRoom && (
+                    <button className="p-1.5 rounded-md hover:bg-surface-hover text-muted-foreground hover:text-foreground transition-colors">
+                      <VideoCameraIcon className="w-5 h-5" />
+                    </button>
+                  )}
+                  {selectedChat && (
+                    <AIBadge>{selectedChat.username}</AIBadge>
+                  )}
                 </div>
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-hide">
+                {messages.length === 0 && selectedRoom && (
+                  <div className="flex flex-col items-center justify-center h-full text-center space-y-3">
+                    <span className="text-4xl">{selectedRoom.icon}</span>
+                    <h3 className="text-lg font-semibold text-foreground">Welcome to {selectedRoom.name}</h3>
+                    <p className="text-sm text-muted-foreground">This is the beginning of the room history.</p>
+                  </div>
+                )}
                 {messages.map((msg, idx) => {
                   const isMe = msg.sender._id === 'me' || msg.sender._id === socket?.userId || msg.sender === socket?.userId;
                   return (
                     <motion.div
                       key={idx}
-                      initial={{ opacity: 0, x: isMe ? 20 : -20 }}
-                      animate={{ opacity: 1, x: 0 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
                       className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div
-                        className={`max-w-[70%] px-6 py-4 rounded-[2rem] text-sm font-bold relative group ${
-                          isMe
-                            ? 'bg-gradient-to-tr from-purple-600/80 to-cyan-500/80 text-white rounded-br-none shadow-[0_0_20px_rgba(139,92,246,0.2)]'
-                            : 'bg-white/5 text-white/80 rounded-bl-none border border-white/5'
-                        }`}
-                      >
-                        <p className="leading-relaxed">{msg.message}</p>
-                        <span className={`absolute -bottom-5 text-[8px] font-black uppercase tracking-widest text-white/10 opacity-0 group-hover:opacity-100 transition-opacity ${isMe ? 'right-2' : 'left-2'}`}>
+                      <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[75%]`}>
+                        <div
+                          className={`px-4 py-2.5 rounded-2xl text-sm ${
+                            isMe
+                              ? 'bg-accent text-white rounded-br-sm'
+                              : 'bg-surface-hover text-foreground rounded-bl-sm border border-border'
+                          }`}
+                        >
+                          <p className="leading-relaxed">{msg.message}</p>
+                        </div>
+                        <span className="text-[10px] font-medium text-muted-foreground mt-1 px-1">
                           {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {isMe && <span className="ml-2 text-accent/80">✓</span>}
                         </span>
                       </div>
                     </motion.div>
@@ -325,8 +461,8 @@ const Chat = () => {
               </div>
 
               {/* Message Input */}
-              <form onSubmit={handleSendMessage} className="p-8 border-t border-white/5 bg-white/2 backdrop-blur-xl">
-                <div className="relative group">
+              <form onSubmit={handleSendMessage} className="p-4 border-t border-border bg-surface">
+                <div className="relative flex items-center">
                   <input
                     type="text"
                     value={newMessage}
@@ -334,34 +470,22 @@ const Chat = () => {
                       setNewMessage(e.target.value);
                       handleTyping();
                     }}
-                    placeholder="Establish connection..."
-                    className="w-full pl-8 pr-16 py-5 rounded-[2rem] bg-white/5 border-white/5 text-white font-bold placeholder:text-white/20 focus:ring-2 focus:ring-purple-500/50 transition-all shadow-2xl"
+                    placeholder={`Message ${selectedRoom ? selectedRoom.name : selectedChat?.fullName}...`}
+                    className="w-full pl-4 pr-12 py-3 rounded-xl bg-surface-hover border border-border text-sm text-foreground placeholder:text-muted focus:ring-1 focus:ring-accent focus:border-accent transition-all"
                   />
                   <button
                     type="submit"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-4 bg-gradient-to-r from-purple-600 to-cyan-500 text-white rounded-2xl shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:scale-110 active:scale-95 transition-all"
+                    disabled={!newMessage.trim()}
+                    className="absolute right-2 p-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:hover:bg-accent"
                   >
-                    <PaperAirplaneIcon className="w-5 h-5 -rotate-45" />
+                    <PaperAirplaneIcon className="w-4 h-4" />
                   </button>
                 </div>
               </form>
             </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex-1 flex flex-col items-center justify-center text-center p-20"
-            >
-              <div className="w-24 h-24 rounded-[3rem] bg-white/5 flex items-center justify-center mb-8 relative">
-                <ChatBubbleBottomCenterTextIcon className="w-10 h-10 text-white/10" />
-                <div className="absolute inset-0 rounded-[3rem] border-2 border-white/5 animate-ping" />
-              </div>
-              <h3 className="text-xl font-black text-white uppercase tracking-tighter italic mb-2">Initialize Connection</h3>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Choose a neural node to start transmitting</p>
-            </motion.div>
           )}
         </AnimatePresence>
-      </GlassCard>
+      </div>
     </div>
   );
 };
