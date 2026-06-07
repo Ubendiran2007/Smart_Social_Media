@@ -103,8 +103,58 @@ class RecommendationService {
       }
     ]);
 
-    const totalPosts = await Post.countDocuments(query);
-    console.log(`Recommendation: Aggregation complete. Found ${posts.length} posts out of ${totalPosts} total matches.`);
+    // ─── MOOD FALLBACK ────────────────────────────────────────────────────────
+    // If mood filter returned zero results, drop the mood constraint and return
+    // general posts so the feed is NEVER empty.
+    if (posts.length === 0 && (moodFilter && moodFilter !== 'None')) {
+      console.log(`Recommendation: Zero posts for mood "${moodFilter}". Falling back to general feed.`);
+      const fallbackQuery = { ...query };
+      delete fallbackQuery['aiMetadata.emotionCategory'];
+
+      const fallbackPosts = await Post.aggregate([
+        { $match: fallbackQuery },
+        {
+          $addFields: {
+            interestScore: {
+              $size: { 
+                $setIntersection: [
+                  { $ifNull: ["$aiMetadata.hashtags", []] }, 
+                  interests.length > 0 ? interests : ["__placeholder__"]
+                ] 
+              }
+            },
+            timeDiff: { $subtract: [now, "$createdAt"] }
+          }
+        },
+        { $addFields: { recencyScore: { $divide: [1, { $add: ["$timeDiff", 1] }] } } },
+        {
+          $addFields: {
+            finalScore: {
+              $add: [
+                { $multiply: ["$interestScore", 100] },
+                { $multiply: ["$recencyScore", 10000000000] },
+                { $multiply: [{ $size: { $ifNull: ["$likes", []] } }, 10] },
+                { $size: { $ifNull: ["$comments", []] } }
+              ]
+            }
+          }
+        },
+        { $sort: { finalScore: -1 } },
+        { $skip: (page - 1) * limit },
+        { $limit: limit },
+        { $lookup: { from: 'users', localField: 'user', foreignField: '_id', as: 'user' } },
+        { $unwind: '$user' },
+        { $project: { 'user.password': 0, 'user.email': 0, 'user.moodHistory': 0 } }
+      ]);
+
+      const fallbackTotal = await Post.countDocuments(fallbackQuery);
+      return {
+        posts: fallbackPosts,
+        totalPosts: fallbackTotal,
+        hasMore: (page * limit) < fallbackTotal
+      };
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     return {
       posts,

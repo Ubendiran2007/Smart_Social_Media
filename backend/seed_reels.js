@@ -1,66 +1,111 @@
+require('dotenv').config();
 const mongoose = require('mongoose');
 const Reel = require('./models/Reel');
 const User = require('./models/User');
-require('dotenv').config();
+const cloudinary = require('./config/cloudinary');
+const https = require('https');
+const http = require('http');
 
-const sampleVideos = [
-  'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-  'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-  'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-  'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-  'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-  'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-  'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
-  'https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-  'https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
-  'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+const rawUrls = [
+  'https://www.w3schools.com/html/mov_bbb.mp4',
+  'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/friday.mp4',
+  'https://media.w3.org/2010/05/sintel/trailer.mp4',
+  'https://media.w3.org/2010/05/bunny/trailer.mp4',
+  'https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4'
 ];
 
-const moods = ['PRODUCTIVE', 'LEARNING', 'CALM', 'MOTIVATIONAL', 'FUNNY'];
+const moods = ['PRODUCTIVE', 'CALM', 'FUNNY', 'LEARNING', 'MOTIVATIONAL'];
+
+// Strict Validation
+const validateUrl = (url) => {
+  return new Promise((resolve) => {
+    const lib = url.startsWith('https') ? https : http;
+    lib.request(url, { method: 'HEAD' }, (res) => {
+      if (res.statusCode === 200 && res.headers['content-type'] && res.headers['content-type'].startsWith('video/')) {
+        resolve(true);
+      } else {
+        console.warn(`URL rejected during HEAD request: ${url} (Status: ${res.statusCode})`);
+        resolve(false);
+      }
+    }).on('error', (e) => {
+      console.warn(`URL error: ${url} (${e.message})`);
+      resolve(false);
+    }).end();
+  });
+};
 
 const seedReels = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to DB. Seeding reels...');
+    console.log('Connected to DB. Starting Cloudinary seed...');
 
-    // Clear old reels
     await Reel.deleteMany({});
-    console.log('Old reels cleared.');
+    console.log('Cleared existing reels.');
 
     const user = await User.findOne();
-    if (!user) {
-      console.log('No user found to assign reels to!');
-      process.exit(1);
+    if (!user) throw new Error('No user found in DB to assign reels to!');
+
+    // Phase 1: Validate URLs
+    const validRawUrls = [];
+    for (const url of rawUrls) {
+      if (await validateUrl(url)) {
+        validRawUrls.push(url);
+      }
+    }
+    console.log(`Validated ${validRawUrls.length} public MP4 URLs successfully.`);
+
+    if (validRawUrls.length === 0) {
+      throw new Error('All raw URLs failed validation. Cannot proceed.');
     }
 
+    // Phase 2: Upload & Seed
     for (const mood of moods) {
-      console.log(`Seeding 20 reels for mood: ${mood}`);
+      console.log(`\n--- Processing Mood: ${mood} ---`);
+      const folderName = `reels/${mood.toLowerCase()}`;
+      
+      const cloudinaryUrls = [];
+      for (let i = 0; i < validRawUrls.length; i++) {
+        try {
+          console.log(`Uploading video ${i+1}/${validRawUrls.length} to Cloudinary folder [${folderName}]...`);
+          const result = await cloudinary.uploader.upload(validRawUrls[i], {
+            resource_type: 'video',
+            folder: folderName
+          });
+          
+          if (!result.secure_url) throw new Error('No secure_url returned');
+          
+          cloudinaryUrls.push(result.secure_url);
+          console.log(`✅ Success: ${result.secure_url}`);
+        } catch (uploadErr) {
+          console.error(`❌ Upload failed, falling back to raw URL:`, uploadErr.message);
+          cloudinaryUrls.push(validRawUrls[i]); // Fallback safely to original valid URL
+        }
+      }
+
+      // Phase 3: DB Insertion
       const newReels = [];
       for (let i = 0; i < 20; i++) {
-        const randomVideo = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
+        const finalUrl = cloudinaryUrls[Math.floor(Math.random() * cloudinaryUrls.length)];
         newReels.push({
           user: user._id,
-          video: randomVideo,
-          caption: `A beautiful ${mood.toLowerCase()} moment #${i + 1}`,
+          video: finalUrl,
+          caption: `${mood} lifestyle moment #${i + 1} 🚀`,
           mood: mood,
           hashtags: ['#explore', `#${mood.toLowerCase()}`, '#trending'],
-          aiMetadata: {
-            hashtags: ['#explore', `#${mood.toLowerCase()}`, '#trending'],
-            keywords: [mood.toLowerCase(), 'video', 'trending'],
-            emotionCategory: mood.charAt(0) + mood.slice(1).toLowerCase() // Map back to old enum format just in case
-          },
           likes: [],
           comments: [],
-          views: Math.floor(Math.random() * 1000)
+          views: Math.floor(Math.random() * 500)
         });
       }
+      
       await Reel.insertMany(newReels);
+      console.log(`Inserted 20 secure reels into DB for ${mood}.`);
     }
 
-    console.log('Reels seeding completed successfully!');
+    console.log('\n✅ Full seed complete! All reels are live and secure.');
     process.exit(0);
   } catch (error) {
-    console.error('Error seeding reels:', error);
+    console.error('Fatal Seed Error:', error);
     process.exit(1);
   }
 };

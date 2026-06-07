@@ -31,15 +31,6 @@ const ReelPlayer = ({ reel: initialReel }) => {
 
   const isLiked = reel.likes?.some(like => (like.user?._id || like.user) === user?._id);
 
-  // Validate URL immediately
-  useEffect(() => {
-    console.log("Reel:", reel);
-    console.log("Video URL:", reel.video);
-    if (!reel.video || typeof reel.video !== 'string' || !reel.video.startsWith('http')) {
-      setVideoError(true);
-    }
-  }, [reel.video]);
-
   useEffect(() => {
     const options = { threshold: 0.7 };
     const observer = new IntersectionObserver((entries) => {
@@ -114,40 +105,39 @@ const ReelPlayer = ({ reel: initialReel }) => {
     } catch (err) { console.error(err); }
   };
 
+  if (!reel.video || videoError) {
+    return null;
+  }
+
   return (
     <div className="relative h-screen w-full bg-black snap-start overflow-hidden flex items-center justify-center group">
-      {(!reel.video || videoError) ? (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80 p-6 text-center">
-          <ExclamationTriangleIcon className="w-12 h-12 text-white/50 mb-4 opacity-80" />
-          <p className="text-sm font-bold text-white mb-2">Video Unavailable</p>
-          <p className="text-xs text-white/50 max-w-xs leading-relaxed">This reel is unavailable.</p>
-        </div>
-      ) : (
-        <>
-          {!isVideoReady && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black">
-               <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-            </div>
-          )}
+      <>
+        {!isVideoReady && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black">
+             <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+          </div>
+        )}
           <video
+            ref={videoRef}
             src={reel.video}
-            controls
-            muted
+            className={`h-full w-full object-cover relative z-10 cursor-pointer transition-opacity duration-300 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
+            loop
+            controls={false}
+            muted={isMuted}
             playsInline
             preload="metadata"
-            autoPlay
-            onLoadedData={() => console.log("Video loaded")}
-            onCanPlay={() => console.log("Video can play")}
+            onLoadedData={() => setIsVideoReady(true)}
+            onCanPlay={() => setIsVideoReady(true)}
+            onTimeUpdate={handleTimeUpdate}
             onError={(e) => {
-                console.error("VIDEO ERROR", reel.video, e);
-                setVideoError(true);
+              console.error("Video Playback Error:", e);
+              setVideoError(true);
             }}
-            className="h-full w-full object-cover relative z-10"
+            onClick={() => setIsVideoReady(true) && setIsMuted(!isMuted)}
+            onDoubleClick={handleLike}
           />
         </>
-      )}
 
-      {/* Like Animation */}
       <AnimatePresence>
         {showHeart && (
           <motion.div 
@@ -161,9 +151,7 @@ const ReelPlayer = ({ reel: initialReel }) => {
         )}
       </AnimatePresence>
 
-      {/* Right Side Actions */}
       <div className="absolute right-4 bottom-24 flex flex-col items-center gap-6 z-30 pb-4">
-        {/* Profile */}
         <div className="relative mb-2">
           <img 
             src={reel.user?.avatar || `https://ui-avatars.com/api/?name=${reel.user?.username || 'U'}&background=333&color=fff`} 
@@ -194,7 +182,6 @@ const ReelPlayer = ({ reel: initialReel }) => {
         </div>
       </div>
 
-      {/* Bottom Info Overlay */}
       <div className="absolute bottom-0 left-0 right-0 p-4 pt-20 pb-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-20 pr-20">
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -225,12 +212,10 @@ const ReelPlayer = ({ reel: initialReel }) => {
         </div>
       </div>
 
-      {/* Progress Bar */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 z-40">
         <div className="h-full bg-white transition-all duration-100 ease-linear" style={{ width: `${progress}%` }} />
       </div>
 
-      {/* Comments Drawer */}
       <AnimatePresence>
         {showComments && (
           <>
