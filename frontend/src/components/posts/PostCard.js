@@ -17,31 +17,9 @@ import { useNavigate } from 'react-router-dom';
 import { GlassCard, AIBadge, NeonButton } from '../ui/SiliconValley';
 import { toast } from 'react-hot-toast';
 import { aiAPI } from '../../services/aiAPI';
+import { ClickableHashtags, HashtagPill } from '../hashtags/HashtagIntelligencePanel';
 
-const HashtagText = ({ text, onHashtagClick }) => {
-  if (!text) return null;
-  const parts = text.split(/(#\w+)/g);
-  return (
-    <>
-      {parts.map((part, i) => 
-        part.startsWith('#') ? (
-          <span
-            key={i}
-            onClick={(e) => {
-              e.stopPropagation();
-              onHashtagClick(part);
-            }}
-            className="text-cyan-400 hover:text-cyan-300 cursor-pointer hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] transition-all font-bold"
-          >
-            {part}
-          </span>
-        ) : (
-          part
-        )
-      )}
-    </>
-  );
-};
+
 
 const PostCard = ({ post, onUpdate, onDelete }) => {
   const { user } = useAuth();
@@ -316,13 +294,13 @@ const PostCard = ({ post, onUpdate, onDelete }) => {
           <div className="mb-8">
             <p className="text-base text-white/90 leading-relaxed font-medium">
               <span className="font-black text-purple-400 mr-3 uppercase tracking-tighter italic">@{post.user?.username}</span>
-              <HashtagText text={post.caption} onHashtagClick={(tag) => navigate(`/search?q=${encodeURIComponent(tag)}`)} />
+              <ClickableHashtags text={post.caption} />
             </p>
           </div>
         )}
 
         {/* AI Insights Layer */}
-        {post.aiMetadata && (
+        {post.aiMetadata && post.aiMetadata.hashtags?.length > 0 && (
           <div className="mb-8 p-6 rounded-[2rem] bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/10 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -331,14 +309,12 @@ const PostCard = ({ post, onUpdate, onDelete }) => {
               <div className="text-[10px] font-black text-white/20 uppercase tracking-widest">Confidence 98.4%</div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {post.aiMetadata.hashtags?.map(tag => (
-                <button 
-                  key={tag} 
-                  onClick={() => navigate(`/search?q=${encodeURIComponent(tag)}`)}
-                  className="text-[10px] font-bold bg-white/5 px-3 py-1.5 rounded-xl text-white/40 border border-white/5 hover:border-purple-500/30 hover:text-purple-400 transition-all cursor-pointer"
-                >
-                  {tag}
-                </button>
+              {post.aiMetadata.hashtags.map(tag => (
+                <HashtagPill
+                  key={tag}
+                  tag={tag}
+                  variant="default"
+                />
               ))}
               <div className="ml-auto flex gap-2">
                 <span className="text-[10px] bg-cyan-500/10 px-3 py-1.5 rounded-xl text-cyan-400 font-black uppercase tracking-widest border border-cyan-500/20">

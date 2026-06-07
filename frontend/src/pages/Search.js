@@ -12,8 +12,9 @@ import {
 import { GlassCard, AIBadge, NeonButton } from '../components/ui/SiliconValley';
 import { usersAPI } from '../services/usersAPI';
 import { searchAPI } from '../services/searchAPI';
+import { hashtagAPI } from '../services/hashtagAPI';
 import { useMood } from '../context/MoodContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 // Simple debounce helper
 const debounceHelper = (func, wait) => {
@@ -26,7 +27,9 @@ const debounceHelper = (func, wait) => {
 
 const Search = () => {
   const { activeMood } = useMood();
-  const [query, setQuery] = useState('');
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get('q') || '');
   const [globalResults, setGlobalResults] = useState({
     users: [],
     posts: [],
@@ -43,7 +46,7 @@ const Search = () => {
       setLoading(true);
       const [sugRes, trendRes] = await Promise.all([
         usersAPI.searchUsers(''),
-        searchAPI.getTrending(activeMood)
+        hashtagAPI.getTrending(activeMood, 15)
       ]);
       setSuggestions(sugRes.data.suggestions || []);
       setTrendingTags(trendRes.data.trending || []);
@@ -88,14 +91,19 @@ const Search = () => {
   const handleInputChange = (e) => {
     const value = e.target.value;
     setQuery(value);
-    
-    // Instant search for first character, debounced for the rest
     if (value.length === 1) {
       fetchResults(value);
     } else {
       debouncedSearch(value);
     }
   };
+
+  // Handle ?q= URL param on mount
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q && q !== query) { setQuery(q); fetchResults(q); }
+    else if (!q) { fetchInitialData(); }
+  }, [activeMood]);
 
   const handleFollowToggle = async (userId) => {
     try {
@@ -165,10 +173,7 @@ const Search = () => {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.1 }}
-                      onClick={() => {
-                        setQuery(t.tag);
-                        fetchResults(t.tag);
-                      }}
+                      onClick={() => navigate(`/hashtag/${encodeURIComponent(t.tag.replace('#', ''))}`)}
                       className="px-6 py-3 rounded-2xl bg-white/5 border border-white/5 hover:border-cyan-400/30 hover:bg-white/10 transition-all flex items-center gap-3 group"
                     >
                       <span className="text-cyan-400 font-bold group-hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]">{t.tag}</span>
