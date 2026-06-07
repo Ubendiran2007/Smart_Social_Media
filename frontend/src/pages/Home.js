@@ -68,10 +68,39 @@ const Home = () => {
 
   const handleDeletePost = (postId) => {
     setPosts(prev => prev.filter(p => p._id !== postId));
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const getMoodInsight = () => {
+    const insights = {
+      Productive: "78% of today's content matches your goals.",
+      Calm: "The feed is filtered for peaceful content.",
+      Funny: "We've surfaced the best memes for you.",
+      Learning: "Top tutorials and guides ready for you.",
+      Motivational: "Success stories to fuel your day."
+    };
+    return insights[activeMood] || "Your feed is tailored to your current mood.";
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl mx-auto py-6">
+      {/* Top Greeting Section */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-foreground mb-1">
+          {getGreeting()}, {user?.username || 'Creator'}
+        </h1>
+        <div className="flex items-center gap-2 mt-2">
+          <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+          <p className="text-sm text-muted-foreground">
+            You are currently in <span className="font-semibold text-foreground">{activeMood}</span> Mode. {getMoodInsight()}
+          </p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Main Feed */}
