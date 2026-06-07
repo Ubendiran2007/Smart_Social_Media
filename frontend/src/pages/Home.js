@@ -4,14 +4,13 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 import PostCard from '../components/posts/PostCard';
 import StoryRing from '../components/stories/StoryRing';
 import StoryViewer from '../components/stories/StoryViewer';
-import MoodSelector from '../components/mood/MoodSelector';
 import NeuralDiscoverySidebar from '../components/discovery/NeuralDiscoverySidebar';
 import { postsAPI } from '../services/postsAPI';
 import { storiesAPI } from '../services/storiesAPI';
 import { useAuth } from '../context/AuthContext';
-import { GlassCard, AIBadge } from '../components/ui/SiliconValley';
+import { AIBadge } from '../components/ui/SiliconValley';
 import { useMood } from '../context/MoodContext';
-import { SparklesIcon, FireIcon } from '@heroicons/react/24/outline';
+import { BoltIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 const Home = () => {
   const { user } = useAuth();
@@ -31,22 +30,18 @@ const Home = () => {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      console.log("Home: Initiating sync for mood:", activeMood, "Productivity:", isProductivityMode);
       
       const [postsResponse, storiesResponse] = await Promise.all([
         postsAPI.getFeedPosts(1, 10, activeMood, isProductivityMode),
         storiesAPI.getStories(activeMood)
       ]);
       
-      console.log("Home: Posts Data Received:", postsResponse.data?.posts?.length || 0, "items");
-      console.log("Home: Stories Data Received:", storiesResponse.data?.stories?.length || 0, "items");
-
       setPosts(Array.isArray(postsResponse.data?.posts) ? postsResponse.data.posts : []);
       setStories(Array.isArray(storiesResponse.data?.stories) ? storiesResponse.data.stories : []);
       setHasMore(postsResponse.data?.hasMore || false);
       setPage(1);
     } catch (error) {
-      console.error('Home: Sync failure:', error);
+      console.error('Home load error:', error);
     } finally {
       setLoading(false);
     }
@@ -56,17 +51,14 @@ const Home = () => {
     if (!hasMore || loading) return;
     try {
       const nextPage = page + 1;
-      console.log("Home: Fetching more posts, page:", nextPage, "Mood:", activeMood);
       const response = await postsAPI.getFeedPosts(nextPage, 10, activeMood, isProductivityMode);
       
       const newPosts = Array.isArray(response.data?.posts) ? response.data.posts : [];
-      console.log("Home: Appending", newPosts.length, "new posts");
-      
       setPosts(prev => [...prev, ...newPosts]);
       setHasMore(response.data?.hasMore || false);
       setPage(nextPage);
     } catch (error) {
-      console.error('Home: Load more failure:', error);
+      console.error('Home load more error:', error);
     }
   };
 
@@ -79,31 +71,31 @@ const Home = () => {
   };
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 py-8 pb-32">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+    <div className="max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Main Feed */}
-        <div className="lg:col-span-8 space-y-12">
+        <div className="lg:col-span-8 space-y-6">
           
           {/* Stories Horizontal Strip */}
-          <section className="relative">
-            <div className="flex items-center justify-between mb-6 px-2">
-              <div className="flex items-center gap-3">
-                <FireIcon className="w-5 h-5 text-purple-400" />
-                <h2 className="text-xs font-black text-white uppercase tracking-widest italic">Live Neural Stream</h2>
+          <section className="bg-surface border border-border rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <BoltIcon className="w-4 h-4 text-accent" />
+                <h2 className="text-sm font-semibold text-foreground">Active Stories</h2>
               </div>
-              <AIBadge>ACTIVE</AIBadge>
+              <AIBadge>Live</AIBadge>
             </div>
             
-            <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-hide snap-x">
+            <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar snap-x">
               <AnimatePresence>
                 {stories.map((userStory, idx) => (
                   <motion.div
                     key={userStory.user._id}
-                    initial={{ opacity: 0, scale: 0.8 }}
+                    initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.1 }}
-                    className="snap-start"
+                    transition={{ delay: idx * 0.05 }}
+                    className="snap-start shrink-0"
                   >
                     <StoryRing 
                       user={userStory.user} 
@@ -115,8 +107,8 @@ const Home = () => {
               </AnimatePresence>
               
               {stories.length === 0 && !loading && (
-                <div className="flex items-center justify-center w-full py-8 bg-white/5 rounded-3xl border border-dashed border-white/10 opacity-40">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-white">No active streams</p>
+                <div className="flex items-center justify-center w-full py-4 text-muted-foreground">
+                  <p className="text-xs font-medium">No active stories in your network.</p>
                 </div>
               )}
             </div>
@@ -130,26 +122,28 @@ const Home = () => {
             loader={<FeedLoader />}
             endMessage={<FeedEnd />}
             scrollThreshold={0.8}
+            className="space-y-6 overflow-hidden"
           >
-            <div className="space-y-12">
-              {posts.map((post) => (
-                <PostCard 
-                  key={post._id} 
-                  post={post} 
-                  onUpdate={handleUpdatePost}
-                  onDelete={handleDeletePost}
-                />
-              ))}
-              
-              {posts.length === 0 && !loading && (
-                <EmptyFeed />
-              )}
-            </div>
+            {posts.map((post) => (
+              <PostCard 
+                key={post._id} 
+                post={post} 
+                onUpdate={handleUpdatePost}
+                onDelete={handleDeletePost}
+              />
+            ))}
+            
+            {posts.length === 0 && !loading && (
+              <EmptyFeed />
+            )}
           </InfiniteScroll>
         </div>
 
-        <div className="lg:col-span-4 space-y-10 sticky top-8 h-fit hidden lg:block">
-          <NeuralDiscoverySidebar />
+        {/* Sidebar */}
+        <div className="lg:col-span-4 hidden lg:block">
+          <div className="sticky top-20">
+            <NeuralDiscoverySidebar />
+          </div>
         </div>
       </div>
 
@@ -166,34 +160,42 @@ const Home = () => {
 };
 
 const FeedLoader = () => (
-  <div className="space-y-12 py-10">
+  <div className="space-y-6 py-4">
     {[1, 2].map(i => (
-      <div key={i} className="animate-pulse space-y-4">
-        <div className="h-[400px] bg-white/5 rounded-[3rem]" />
-        <div className="h-4 bg-white/5 rounded w-3/4 mx-auto" />
+      <div key={i} className="card-base p-0 overflow-hidden flex flex-col">
+        <div className="p-4 flex items-center gap-3 border-b border-border">
+          <div className="w-10 h-10 rounded-lg skeleton shrink-0" />
+          <div className="space-y-2 flex-1">
+            <div className="h-3 w-24 skeleton" />
+            <div className="h-2 w-16 skeleton" />
+          </div>
+        </div>
+        <div className="aspect-video w-full skeleton rounded-none" />
+        <div className="p-6 space-y-3">
+          <div className="h-3 w-3/4 skeleton" />
+          <div className="h-3 w-1/2 skeleton" />
+        </div>
       </div>
     ))}
   </div>
 );
 
 const FeedEnd = () => (
-  <div className="py-20 text-center opacity-20">
-    <div className="h-px bg-white/10 w-24 mx-auto mb-8" />
-    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white">Edge of collective reached</p>
+  <div className="py-12 text-center">
+    <div className="h-px bg-border w-12 mx-auto mb-4" />
+    <p className="text-xs font-medium text-muted-foreground">You've reached the end of your feed.</p>
   </div>
 );
 
 const EmptyFeed = () => (
-  <div className="py-40 text-center space-y-6">
-    <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-[3rem] flex items-center justify-center mx-auto opacity-20">
-      <SparklesIcon className="w-12 h-12 text-white" />
+  <div className="py-20 text-center flex flex-col items-center">
+    <div className="w-16 h-16 bg-surface border border-border rounded-2xl flex items-center justify-center mb-4 text-muted-foreground">
+      <SparklesIcon className="w-8 h-8" />
     </div>
-    <div className="space-y-2">
-      <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Neural Stream Unavailable</h3>
-      <p className="text-[10px] font-black text-white/20 uppercase tracking-widest max-w-xs mx-auto leading-relaxed">
-        We couldn't find any cognitive fragments matching your current mood synchronization.
-      </p>
-    </div>
+    <h3 className="text-lg font-semibold text-foreground mb-1">No posts found</h3>
+    <p className="text-sm text-muted-foreground max-w-sm">
+      We couldn't find any posts matching your current network and theme settings. Try following more users.
+    </p>
   </div>
 );
 

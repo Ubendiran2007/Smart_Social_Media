@@ -4,31 +4,36 @@ import {
   ArrowTrendingUpIcon, 
   HeartIcon, 
   SparklesIcon,
-  BoltIcon
+  BoltIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import { useWellness } from '../context/WellnessContext';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 
-const StatCard = ({ title, value, icon: Icon, trend, color, description }) => (
-  <motion.div 
-    whileHover={{ y: -5 }}
-    className="glass-card p-6 border-white/5 bg-gradient-to-br from-white/5 to-transparent"
-  >
-    <div className="flex items-center justify-between mb-4">
-      <div className={`p-3 rounded-2xl bg-${color}-500/10`}>
-        <Icon className={`w-6 h-6 text-${color}-400`} />
+const StatCard = ({ title, value, icon: Icon, trend, color, description }) => {
+  const isPositive = trend >= 0;
+  
+  return (
+    <div className="bg-surface border border-border rounded-xl p-5 hover:border-border-strong transition-colors">
+      <div className="flex items-start justify-between mb-3">
+        <div className={`p-2.5 rounded-lg bg-${color}-500/10`}>
+          <Icon className={`w-5 h-5 text-${color}-500`} />
+        </div>
+        {trend !== undefined && (
+          <span className={`text-xs font-semibold px-2 py-1 rounded-md ${isPositive ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}`}>
+            {isPositive ? '+' : ''}{trend}%
+          </span>
+        )}
       </div>
-      {trend !== undefined && (
-        <span className={`text-[10px] font-bold ${trend >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-rose-400 bg-rose-400/10'} px-2 py-1 rounded-lg`}>
-          {trend >= 0 ? '+' : ''}{trend}%
-        </span>
-      )}
+      <div>
+        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+        <p className="text-2xl font-bold text-foreground mt-1">{value}</p>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      </div>
     </div>
-    <h3 className="text-white/40 text-xs font-bold uppercase tracking-widest">{title}</h3>
-    <p className="text-3xl font-black text-white mt-1">{value}</p>
-  </motion.div>
-);
+  );
+};
 
 const AnalyticsDashboard = () => {
   const { user } = useAuth();
@@ -38,46 +43,46 @@ const AnalyticsDashboard = () => {
 
   const stats = [
     { 
-      title: 'Burnout Level', 
+      title: 'Digital Fatigue', 
       value: `${burnoutIndex}%`, 
       icon: BoltIcon, 
       trend: burnoutIndex > 50 ? 15 : -5, 
       color: burnoutIndex > 70 ? 'rose' : 'purple',
-      description: burnoutIndex > 70 ? 'Take a break now' : 'You are doing great'
+      description: burnoutIndex > 70 ? 'Take a break soon' : 'Healthy usage'
     },
     { 
       title: 'Time Spent', 
       value: `${dailySessions} mins`, 
       icon: SparklesIcon, 
       color: 'cyan',
-      description: 'Total focus time today'
+      description: 'Active screen time today'
     },
     { 
-      title: 'Videos Watched', 
+      title: 'Content Viewed', 
       value: reelCount, 
       icon: HeartIcon, 
       trend: 5, 
       color: 'pink',
-      description: 'Across all neural feeds'
+      description: 'Posts and reels seen'
     },
     { 
-      title: 'Wellness Status', 
-      value: burnoutIndex > 80 ? 'Rest Needed' : 'Healthy', 
+      title: 'Status', 
+      value: burnoutIndex > 80 ? 'Rest Needed' : 'Balanced', 
       icon: ArrowTrendingUpIcon, 
-      color: burnoutIndex > 80 ? 'rose' : 'orange',
-      description: 'Current mental resonance'
+      color: burnoutIndex > 80 ? 'rose' : 'emerald',
+      description: 'Current wellness assessment'
     },
   ];
 
   const aiSuggestion = useMemo(() => {
-    if (burnoutIndex > 80) return "You've been on the screen too long. We recommend closing the app for at least 30 minutes to reset your focus.";
-    if (burnoutIndex > 50) return "You're starting to get tired. Try switching to a 'Calm' mood and taking a quick stretch.";
-    return "Your energy levels are perfect! This is a great time for creative work or learning something new.";
+    if (burnoutIndex > 80) return "You've been active for a while. We recommend stepping away from the screen for at least 30 minutes to recharge.";
+    if (burnoutIndex > 50) return "You're starting to build up screen time. Try taking a quick 5-minute stretch break.";
+    return "Your screen time is well balanced! Keep up the good habits.";
   }, [burnoutIndex]);
 
   const handleDownload = () => {
     const reportData = {
-      user: user?.username || 'Neural User',
+      user: user?.username || 'User',
       timestamp: new Date().toISOString(),
       metrics: {
         burnoutIndex,
@@ -91,166 +96,142 @@ const AnalyticsDashboard = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(reportData, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `sentient_wellness_report_${new Date().toLocaleDateString()}.json`);
+    downloadAnchorNode.setAttribute("download", `wellness_report_${new Date().toLocaleDateString()}.json`);
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
-    toast.success('Neural Report Exported');
+    toast.success('Report downloaded');
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-12 px-4 space-y-12">
-      <div className="flex items-center justify-between">
+    <div className="max-w-5xl mx-auto py-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 border-b border-border pb-6">
         <div>
-          <h1 className="text-5xl font-black text-white tracking-tighter uppercase italic">Wellness Hub</h1>
-          <p className="text-white/40 text-[10px] mt-1 uppercase tracking-[0.3em] font-black">Your Digital Balance & Progress</p>
+          <h1 className="text-2xl font-bold text-foreground mb-1">Wellness Portal</h1>
+          <p className="text-sm text-muted-foreground">Monitor your digital balance and screen habits</p>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">
-            Last Updated: {safeLastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        <div className="flex items-center gap-4">
+          <p className="text-xs text-muted-foreground">
+            Updated today at {safeLastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
-          <div className="flex gap-2">
-            <button 
-              onClick={handleDownload}
-              className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"
-            >
-              Download Report
-            </button>
-            <button className="px-6 py-3 rounded-2xl bg-purple-600 text-[10px] font-black uppercase tracking-widest text-white shadow-[0_0_20px_rgba(147,51,234,0.3)]">AI Wellness Guide</button>
-          </div>
+          <button 
+            onClick={handleDownload}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface hover:bg-surface-hover border border-border text-sm font-medium text-foreground transition-colors shadow-sm"
+          >
+            <ArrowDownTrayIcon className="w-4 h-4" /> Export Data
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map(stat => (
-          <motion.div 
-            key={stat.title}
-            whileHover={{ y: -5 }}
-            className="glass-card p-6 border-white/5 bg-gradient-to-br from-white/5 to-transparent"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 rounded-2xl bg-${stat.color}-500/10`}>
-                <stat.icon className={`w-6 h-6 text-${stat.color}-400`} />
-              </div>
-              {stat.trend !== undefined && (
-                <span className={`text-[10px] font-bold ${stat.trend >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-rose-400 bg-rose-400/10'} px-2 py-1 rounded-lg`}>
-                  {stat.trend >= 0 ? '+' : ''}{stat.trend}%
-                </span>
-              )}
-            </div>
-            <h3 className="text-white/40 text-xs font-bold uppercase tracking-widest">{stat.title}</h3>
-            <p className="text-3xl font-black text-white mt-1">{stat.value}</p>
-            <p className="text-[9px] font-bold text-white/20 uppercase mt-2 tracking-widest">{stat.description}</p>
-          </motion.div>
+          <StatCard key={stat.title} {...stat} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Chart Area */}
-        <div className="lg:col-span-2 glass-card p-8 border-white/5 relative overflow-hidden">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-lg font-black text-white uppercase italic tracking-tighter">Engagement Pulse</h3>
+        <div className="lg:col-span-2 bg-surface border border-border rounded-xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-base font-semibold text-foreground">Activity Timeline</h3>
             <div className="flex gap-4">
-              <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40">
-                <div className="w-2 h-2 rounded-full bg-purple-500" /> Focus Time
+              <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <div className="w-2 h-2 rounded-full bg-accent" /> Focus
               </span>
-              <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40">
-                <div className="w-2 h-2 rounded-full bg-cyan-400" /> Community
+              <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <div className="w-2 h-2 rounded-full bg-cyan-500" /> Browsing
               </span>
             </div>
           </div>
           
-          <div className="h-64 w-full relative">
-            <svg viewBox="0 0 1000 300" className="w-full h-full">
+          <div className="h-[240px] w-full relative">
+            <svg viewBox="0 0 1000 300" className="w-full h-full preserve-aspect-ratio-none">
               <defs>
                 <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#9333ea" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#9333ea" stopOpacity="0" />
+                  <stop offset="0%" stopColor="var(--mood-primary)" stopOpacity="0.2" />
+                  <stop offset="100%" stopColor="var(--mood-primary)" stopOpacity="0" />
                 </linearGradient>
               </defs>
               <motion.path
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
-                transition={{ duration: 2, ease: "easeInOut" }}
+                transition={{ duration: 1.5, ease: "easeInOut" }}
                 d={`M0 250 Q 150 ${250 - dailySessions * 20}, 300 180 T 600 ${250 - reelCount * 10} T 1000 150`}
                 fill="none"
-                stroke="#9333ea"
-                strokeWidth="4"
+                stroke="var(--mood-primary)"
+                strokeWidth="3"
                 strokeLinecap="round"
               />
               <motion.path
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
+                transition={{ delay: 0.5 }}
                 d={`M0 250 Q 150 ${250 - dailySessions * 20}, 300 180 T 600 ${250 - reelCount * 10} T 1000 150 L 1000 300 L 0 300 Z`}
                 fill="url(#chartGradient)"
               />
             </svg>
             
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-10">
+            {/* Grid lines */}
+            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="w-full h-px bg-white" />
+                <div key={i} className="w-full border-t border-border opacity-50" />
               ))}
             </div>
           </div>
-          <p className="text-[9px] font-bold text-white/10 uppercase text-center mt-4 tracking-[0.5em]">Activity timeline over last 24 hours</p>
         </div>
 
         {/* Side Panel */}
-        <div className="flex flex-col gap-8">
-          <div className="glass-card p-8 border-white/5">
-            <h3 className="text-lg font-black text-white uppercase italic tracking-tighter mb-6">Health Score</h3>
-            <div className="space-y-6">
+        <div className="flex flex-col gap-4">
+          <div className="bg-surface border border-border rounded-xl p-6">
+            <h3 className="text-base font-semibold text-foreground mb-5">Summary</h3>
+            <div className="space-y-5">
               <div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Digital Fatigue</span>
-                  <span className={`text-[10px] font-black ${burnoutIndex > 70 ? 'text-rose-500' : 'text-cyan-400'}`}>{burnoutIndex}%</span>
+                  <span className="text-xs font-medium text-muted-foreground">Digital Fatigue</span>
+                  <span className={`text-xs font-semibold ${burnoutIndex > 70 ? 'text-rose-500' : 'text-foreground'}`}>{burnoutIndex}%</span>
                 </div>
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-surface-hover rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${burnoutIndex}%` }}
-                    className={`h-full ${burnoutIndex > 70 ? 'bg-rose-500' : 'bg-cyan-400'}`}
+                    className={`h-full ${burnoutIndex > 70 ? 'bg-rose-500' : 'bg-cyan-500'}`}
                   />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Daily Balance Goal</span>
-                  <span className="text-[10px] font-black text-purple-500">{Math.min(100, dailySessions * 10)}%</span>
+                  <span className="text-xs font-medium text-muted-foreground">Daily Goal</span>
+                  <span className="text-xs font-semibold text-foreground">{Math.min(100, dailySessions * 10)}%</span>
                 </div>
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-surface-hover rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(100, dailySessions * 10)}%` }}
-                    className="h-full bg-purple-500"
+                    className="h-full bg-accent"
                   />
                 </div>
               </div>
             </div>
 
-            <div className={`mt-12 p-6 rounded-[2rem] bg-gradient-to-br border ${burnoutIndex > 70 ? 'from-rose-500/10 border-rose-500/20' : 'from-purple-500/10 border-purple-500/20'}`}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`p-2 rounded-xl ${burnoutIndex > 70 ? 'bg-rose-500/20' : 'bg-purple-500/20'}`}>
-                  <SparklesIcon className={`w-5 h-5 ${burnoutIndex > 70 ? 'text-rose-400' : 'text-purple-400'}`} />
-                </div>
-                <span className="text-[10px] font-black text-white uppercase tracking-widest">AI Wellness Guide</span>
+            <div className="mt-6 p-4 rounded-lg bg-surface-hover/50 border border-border">
+              <div className="flex items-center gap-2 mb-2">
+                <SparklesIcon className="w-4 h-4 text-accent" />
+                <span className="text-xs font-semibold text-foreground">AI Insight</span>
               </div>
-              <p className="text-xs text-white/80 leading-relaxed font-bold italic">
-                "{aiSuggestion}"
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {aiSuggestion}
               </p>
             </div>
           </div>
 
-          {/* New: Community Impact Card */}
-          <div className="glass-card p-6 border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-transparent">
-            <h3 className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.2em] mb-4">Community Impact</h3>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Kindness Quotient</span>
-              <span className="text-sm font-black text-white italic">High Harmony</span>
+          <div className="bg-surface border border-border rounded-xl p-6">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Community Impact</h3>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground">Interaction Quality</span>
+              <span className="text-xs font-semibold text-emerald-500">Positive</span>
             </div>
-            <p className="text-[10px] text-white/60 font-medium leading-relaxed">
-              Your interactions today have been 94% positive. You are contributing to a healthier neural collective.
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Your interactions today have been predominantly positive, contributing to a healthier platform environment.
             </p>
           </div>
         </div>

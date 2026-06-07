@@ -170,39 +170,32 @@ const Create = () => {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto py-12 px-4 space-y-12 pb-32">
+    <div className="max-w-4xl mx-auto py-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center space-y-4"
-      >
-        <AIBadge className="mx-auto">CREATE CONTENT</AIBadge>
-        <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">
-          Share Something
-        </h1>
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20">
-          Upload an image or video — AI will suggest captions based on what it sees
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-foreground mb-2">Create Content</h1>
+        <p className="text-sm text-muted-foreground">
+          Upload an image or video, and our AI will suggest contextual captions.
         </p>
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Tab selector */}
-        <div className="lg:col-span-1 space-y-3">
+        <div className="lg:col-span-1 space-y-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => resetTab(tab.id)}
-              className={`w-full flex items-center gap-4 px-6 py-5 rounded-[2rem] transition-all duration-500 group ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
                 activeTab === tab.id
-                  ? 'bg-white/10 text-white border border-white/10'
-                  : 'text-white/40 hover:text-white hover:bg-white/5'
+                  ? 'bg-surface border border-border shadow-sm'
+                  : 'text-muted-foreground hover:bg-surface-hover hover:text-foreground border border-transparent'
               }`}
             >
-              <tab.icon className={`w-6 h-6 group-hover:scale-110 transition-transform ${activeTab === tab.id ? 'text-purple-400' : ''}`} />
+              <tab.icon className={`w-5 h-5 shrink-0 ${activeTab === tab.id ? 'text-accent' : ''}`} />
               <div className="text-left">
-                <p className="text-xs font-black uppercase tracking-widest">{tab.label}</p>
-                <p className="text-[10px] opacity-40 font-bold uppercase">Share a {tab.id}</p>
+                <p className="text-sm font-semibold text-foreground">{tab.label}</p>
+                <p className="text-xs text-muted-foreground capitalize">Share a {tab.id}</p>
               </div>
             </button>
           ))}
@@ -210,12 +203,12 @@ const Create = () => {
 
         {/* Main form */}
         <div className="lg:col-span-3">
-          <GlassCard className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-8">
+          <GlassCard className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
 
               {/* ── 1. File Upload ─────────────────────────────────── */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 px-1">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-foreground">
                   Upload Media
                 </label>
 
@@ -227,44 +220,41 @@ const Create = () => {
                       onChange={handleFileChange}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
-                    <div className="p-16 rounded-[3rem] border-2 border-dashed border-white/5 group-hover:border-purple-500/30 group-hover:bg-white/3 transition-all flex flex-col items-center gap-4 text-center">
-                      <motion.div
-                        whileHover={{ scale: 1.1, rotate: 10 }}
-                        className="w-16 h-16 rounded-[2rem] bg-white/5 flex items-center justify-center"
-                      >
-                        <CloudArrowUpIcon className="w-8 h-8 text-white/20 group-hover:text-purple-400 transition-colors" />
-                      </motion.div>
+                    <div className="p-12 rounded-xl border-2 border-dashed border-border bg-surface-hover/30 hover:bg-surface-hover hover:border-accent/50 transition-all flex flex-col items-center gap-3 text-center">
+                      <div className="w-12 h-12 rounded-full bg-surface border border-border flex items-center justify-center">
+                        <CloudArrowUpIcon className="w-6 h-6 text-muted-foreground group-hover:text-accent transition-colors" />
+                      </div>
                       <div>
-                        <p className="text-xs font-black text-white uppercase tracking-widest">Select File</p>
-                        <p className="text-[10px] text-white/20 font-bold uppercase mt-1">JPG, PNG, MP4 supported</p>
+                        <p className="text-sm font-semibold text-foreground">Select File</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">JPG, PNG, MP4 supported</p>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="relative rounded-[2rem] overflow-hidden border border-white/10 group">
+                  <div className="relative rounded-xl overflow-hidden border border-border bg-black group">
                     {file.type.startsWith('image/') ? (
-                      <img src={previewUrl} alt="Preview" className="w-full h-64 object-cover" />
+                      <img src={previewUrl} alt="Preview" className="w-full h-64 object-contain" />
                     ) : (
-                      <video src={previewUrl} className="w-full h-64 object-cover" controls />
+                      <video src={previewUrl} className="w-full h-64 object-contain" controls />
                     )}
                     <button
                       type="button"
-                      onClick={() => { setFile(null); setPreviewUrl(null); setCaptionSuggestions([]); setCaptionsReady(false); }}
-                      className="absolute top-3 right-3 p-2 rounded-full bg-black/60 hover:bg-red-500/80 text-white transition-all"
+                      onClick={() => { setFile(null); setPreviewUrl(null); setCaptionSuggestions([]); setHashtagGroups([]); setCaptionsReady(false); setSelectedCaptionIndex(null); setAnalysisData(null); }}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-red-500 text-white transition-all backdrop-blur-sm"
                     >
                       <XMarkIcon className="w-4 h-4" />
                     </button>
                     {/* Analysis results overlay */}
                     {analysisData && (
-                      <div className="absolute bottom-3 left-3 px-3 py-2 rounded-xl bg-black/80 backdrop-blur-md max-w-[90%]">
-                        <p className="text-[9px] font-black text-cyan-400 uppercase tracking-widest mb-1">Detected:</p>
-                        <div className="flex flex-wrap gap-1">
+                      <div className="absolute bottom-2 left-2 px-3 py-2 rounded-lg bg-black/80 backdrop-blur-md max-w-[90%] border border-white/10">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Detected Subjects:</p>
+                        <div className="flex flex-wrap gap-1.5">
                           {[...(analysisData.objects || []), ...(analysisData.themes || []), ...(analysisData.styles || [])]
                             .filter(Boolean)
                             .slice(0, 5)
                             .map((tag, idx) => (
-                            <span key={idx} className="text-[8px] font-bold text-white bg-white/10 px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <CheckIcon className="w-2 h-2 text-cyan-400" /> {tag}
+                            <span key={idx} className="text-xs font-medium text-white bg-white/10 px-2 py-0.5 rounded flex items-center gap-1 border border-white/5">
+                              <CheckIcon className="w-3 h-3 text-accent" /> {tag}
                             </span>
                           ))}
                         </div>
@@ -284,23 +274,18 @@ const Create = () => {
                   >
                     <button
                       type="button"
-                      onClick={handleGenerateCaptions}
+                      onClick={() => handleGenerateCaptions(captionStyle)}
                       disabled={generatingCaptions}
-                      className={`w-full py-4 rounded-[2rem] bg-gradient-to-r ${gradient} text-[10px] font-black uppercase tracking-widest text-white flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(139,92,246,0.25)] hover:shadow-[0_0_50px_rgba(139,92,246,0.4)] transition-all disabled:opacity-60`}
+                      className="w-full py-3 rounded-lg bg-accent hover:bg-accent-hover text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                     >
                       {generatingCaptions ? (
                         <>
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                          >
-                            <CpuChipIcon className="w-5 h-5" />
-                          </motion.div>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           Analyzing image...
                         </>
                       ) : (
                         <>
-                          <SparklesIcon className="w-5 h-5" />
+                          <SparklesIcon className="w-4 h-4" />
                           Generate AI Captions
                         </>
                       )}
@@ -320,19 +305,17 @@ const Create = () => {
                   >
                     {/* Style Regeneration Options */}
                     <div className="space-y-2">
-                      <p className="text-[9px] font-black uppercase tracking-[0.25em] text-white/30 px-1">
-                        Select a Vibe:
-                      </p>
+                      <p className="text-xs font-semibold text-foreground">Select a Tone</p>
                       <div className="flex flex-wrap gap-2">
                         {captionStyles.map(style => (
                           <button
                             key={style}
                             type="button"
                             onClick={() => handleStyleChange(style)}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
                               captionStyle === style
-                                ? `bg-gradient-to-r ${gradient} text-white shadow-lg`
-                                : 'bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white'
+                                ? 'bg-accent text-white shadow-sm'
+                                : 'bg-surface-hover border border-border text-muted-foreground hover:text-foreground'
                             }`}
                           >
                             {style}
@@ -341,9 +324,9 @@ const Create = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between px-1 pt-2 border-t border-white/5">
-                      <p className="text-[9px] font-black uppercase tracking-[0.25em] text-white/30">
-                        Pick a caption — or write your own below
+                    <div className="flex items-center justify-between pt-2 border-t border-border">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        Pick a caption below, or write your own:
                       </p>
                     </div>
 
@@ -357,18 +340,18 @@ const Create = () => {
                           transition={{ delay: i * 0.07 }}
                           whileHover={{ scale: 1.01 }}
                           onClick={() => handleSelectCaption(i)}
-                          className={`w-full text-left px-5 py-4 rounded-2xl border transition-all flex flex-col gap-3 group ${
+                          className={`w-full text-left px-4 py-3 rounded-xl border transition-all flex flex-col gap-2 group ${
                             selectedCaptionIndex === i
-                              ? 'bg-purple-500/15 border-purple-500/40'
-                              : 'bg-white/3 border-white/5 hover:bg-white/8 hover:border-white/15'
+                              ? 'bg-accent/10 border-accent/40'
+                              : 'bg-surface-hover border-transparent hover:border-border-strong'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-3 w-full">
-                            <span className={`text-sm leading-relaxed ${selectedCaptionIndex === i ? 'text-white' : 'text-white/70'}`}>{cap}</span>
-                            <div className={`flex-shrink-0 w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                            <span className={`text-sm ${selectedCaptionIndex === i ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>{cap}</span>
+                            <div className={`flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
                               selectedCaptionIndex === i
-                                ? 'bg-purple-500 border-purple-500'
-                                : 'border-white/20 group-hover:border-white/40'
+                                ? 'bg-accent border-accent'
+                                : 'border-border group-hover:border-border-strong'
                             }`}>
                               {selectedCaptionIndex === i && <CheckIcon className="w-3 h-3 text-white" />}
                             </div>
@@ -376,9 +359,9 @@ const Create = () => {
                           
                           {/* Hashtag Group Preview */}
                           {hashtagGroups[i] && (
-                            <div className="flex flex-wrap gap-1.5 mt-1">
+                            <div className="flex flex-wrap gap-1 mt-1">
                               {hashtagGroups[i].map(tag => (
-                                <span key={tag} className={`text-[10px] font-bold ${selectedCaptionIndex === i ? 'text-cyan-300' : 'text-cyan-500/50 group-hover:text-cyan-400/70'}`}>
+                                <span key={tag} className={`text-xs ${selectedCaptionIndex === i ? 'text-accent' : 'text-muted-foreground'}`}>
                                   {tag}
                                 </span>
                               ))}
@@ -392,13 +375,13 @@ const Create = () => {
               </AnimatePresence>
 
               {/* ── 4. Caption textarea with autocomplete ─────────── */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-foreground">
                     Caption
                   </label>
-                  <span className="text-[9px] text-white/15 font-bold">
-                    Type # for hashtag autocomplete
+                  <span className="text-xs text-muted-foreground">
+                    Type # for autocomplete
                   </span>
                 </div>
                 <HashtagAutocomplete
@@ -406,12 +389,12 @@ const Create = () => {
                   onChange={handleCaptionChange}
                   mood={activeMood}
                   placeholder="Write your caption here, or pick one above..."
-                  className="w-full p-5 rounded-[2rem] bg-white/5 border border-white/5 text-white text-sm font-medium placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500/40 transition-all h-28 resize-none leading-relaxed"
+                  className="w-full bg-surface-hover border border-border rounded-lg p-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-none h-24"
                 />
               </div>
 
               {/* ── 5. Live Hashtag Intelligence ───────────────────── */}
-              <div className="p-5 rounded-[2rem] bg-gradient-to-br from-purple-500/5 to-transparent border border-purple-500/10">
+              <div className="p-4 rounded-xl bg-surface border border-border shadow-sm">
                 <HashtagIntelligencePanel
                   caption={caption}
                   mood={activeMood}
@@ -420,18 +403,18 @@ const Create = () => {
               </div>
 
               {/* ── 6. Submit ──────────────────────────────────────── */}
-              <div className="flex gap-4 pt-2">
+              <div className="flex gap-3 pt-4 border-t border-border">
                 <button
                   type="button"
                   onClick={() => navigate('/')}
-                  className="flex-1 py-4 rounded-[2rem] bg-white/5 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white hover:bg-white/10 transition"
+                  className="px-4 py-2 rounded-lg bg-surface border border-border text-sm font-semibold text-foreground hover:bg-surface-hover transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !file}
-                  className={`flex-[2] py-4 rounded-[2rem] bg-gradient-to-r ${gradient} text-[10px] font-black uppercase tracking-widest text-white shadow-[0_0_30px_rgba(139,92,246,0.25)] hover:shadow-[0_0_50px_rgba(139,92,246,0.4)] transition-all disabled:opacity-40`}
+                  className="flex-1 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white text-sm font-semibold transition-colors disabled:opacity-50"
                 >
                   {loading ? 'Posting...' : `Share ${activeTab}`}
                 </button>

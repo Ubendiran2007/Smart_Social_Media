@@ -17,7 +17,9 @@ import {
   AcademicCapIcon,
   FaceSmileIcon,
   PowerIcon,
-  UserIcon
+  UserIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { useMood } from '../../context/MoodContext';
 import AIAssistant from './AIAssistant';
@@ -25,18 +27,17 @@ import AIAssistant from './AIAssistant';
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const { notifications } = useSocket();
-  const { activeMood, changeMood, theme } = useMood();
-  const [isProductivityMode, setIsProductivityMode] = useState(false);
+  const { activeMood, changeMood } = useMood();
   const location = useLocation();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const moods = [
-    { id: 'Productive', name: 'Prod', icon: AcademicCapIcon, color: 'text-cyan-400' },
-    { id: 'Motivational', name: 'Moti', icon: RocketLaunchIcon, color: 'text-orange-400' },
-    { id: 'Calm', name: 'Calm', icon: FaceSmileIcon, color: 'text-purple-400' },
-    { id: 'Learning', name: 'Learn', icon: SparklesIcon, color: 'text-emerald-400' },
-    { id: 'Funny', name: 'Funny', icon: FaceSmileIcon, color: 'text-pink-400' },
+    { id: 'Productive', name: 'Productive', icon: AcademicCapIcon },
+    { id: 'Motivational', name: 'Motivate', icon: RocketLaunchIcon },
+    { id: 'Calm', name: 'Calm', icon: FaceSmileIcon },
+    { id: 'Learning', name: 'Learn', icon: SparklesIcon },
+    { id: 'Funny', name: 'Playful', icon: FaceSmileIcon },
   ];
 
   const navigation = [
@@ -58,61 +59,48 @@ const Layout = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#020205]">
-      {/* Cinematic Background Blobs */}
-      <div className="bg-blob blob-primary" />
-      <div className="bg-blob blob-secondary" />
-      
+    <div className="min-h-screen bg-background text-foreground flex overflow-hidden">
       <AIAssistant />
 
-      {/* Floating Glass Navigation Sidebar */}
+      {/* Sidebar Navigation */}
       <motion.aside
         initial={false}
-        animate={{ width: isSidebarOpen ? '280px' : '80px' }}
-        className="fixed left-0 top-0 h-full z-50 glass-panel border-r border-white/5 flex flex-col p-4 m-0 transition-all duration-700"
+        animate={{ width: isSidebarOpen ? '260px' : '72px' }}
+        className="flex-shrink-0 bg-surface border-r border-border h-screen flex flex-col transition-all duration-300 relative z-30"
       >
-        <div className="flex items-center gap-4 px-4 py-8 mb-8">
-          <motion.div 
-            whileHover={{ rotate: 180 }}
-            className={`w-10 h-10 rounded-2xl bg-gradient-to-tr ${theme.gradient} flex items-center justify-center`}
-            style={{ boxShadow: `0 0 20px ${theme.glow}` }}
-          >
-            <SparklesIcon className="w-6 h-6 text-white" />
-          </motion.div>
+        <div className="flex items-center gap-3 px-5 py-6 h-20">
+          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0">
+            <SparklesIcon className="w-5 h-5 text-white" />
+          </div>
           {isSidebarOpen && (
             <motion.h1 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-xl font-black text-white tracking-tighter"
+              className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap"
             >
-              SENTIENT
+              Sentient
             </motion.h1>
           )}
         </div>
 
-        <nav className="flex-1 space-y-2 overflow-y-auto scrollbar-hide pr-2">
+        {/* Navigation Links */}
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto no-scrollbar">
           {navigation.map((item) => (
             <Link
               key={item.name}
               to={item.href}
-              className={`flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
                 item.current 
-                  ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.05)]' 
-                  : 'text-white/40 hover:text-white hover:bg-white/5'
+                  ? 'bg-surface-hover text-foreground font-medium' 
+                  : 'text-muted-foreground hover:bg-surface-hover/50 hover:text-foreground'
               }`}
             >
-              <item.icon className={`w-6 h-6 transition-transform duration-500 group-hover:scale-110 ${item.current ? 'text-white' : ''}`} />
+              <item.icon className={`w-5 h-5 shrink-0 ${item.current ? 'text-accent' : 'text-muted-foreground group-hover:text-foreground'}`} />
               {isSidebarOpen && (
-                <motion.span 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="text-xs font-black uppercase tracking-widest"
-                >
-                  {item.name}
-                </motion.span>
+                <span className="text-sm whitespace-nowrap">{item.name}</span>
               )}
               {item.badge > 0 && isSidebarOpen && (
-                <span className="ml-auto bg-red-500 text-[10px] text-white px-2 py-0.5 rounded-full font-bold">
+                <span className="ml-auto bg-accent text-white text-[10px] px-2 py-0.5 rounded-md font-bold">
                   {item.badge}
                 </span>
               )}
@@ -120,100 +108,79 @@ const Layout = ({ children }) => {
           ))}
         </nav>
 
-        <div className="mt-auto pt-8 border-t border-white/5 space-y-6">
+        {/* Mood/Theme Selector */}
+        <div className="px-3 py-4 border-t border-border">
           {isSidebarOpen && (
-            <div className="flex items-center justify-between px-4">
-              <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Neural Sync</p>
-              <div 
-                onClick={() => setIsProductivityMode(!isProductivityMode)}
-                className={`w-6 h-3 rounded-full cursor-pointer transition-all duration-500 relative ${
-                  isProductivityMode ? 'bg-cyan-400/20' : 'bg-white/5'
-                }`}
-              >
-                <motion.div 
-                  animate={{ x: isProductivityMode ? 12 : 0 }}
-                  className={`absolute top-0.5 left-0.5 w-2 h-2 rounded-full ${
-                    isProductivityMode ? 'bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]' : 'bg-white/20'
-                  }`}
-                />
-              </div>
-            </div>
+            <p className="px-3 text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Workspace Mode</p>
           )}
- 
-          <div className={`grid ${isSidebarOpen ? 'grid-cols-5' : 'grid-cols-1'} gap-2 px-2 pb-4`}>
+          <div className={`grid ${isSidebarOpen ? 'grid-cols-5 gap-1' : 'grid-cols-1 gap-2'}`}>
             {moods.map((mood) => (
-              <motion.button
+              <button
                 key={mood.id}
-                whileHover={{ scale: 1.1, y: -2 }}
-                whileTap={{ scale: 0.9 }}
                 onClick={() => changeMood(mood.id)}
-                className={`flex flex-col items-center gap-2 py-3 rounded-2xl transition-all duration-500 ${
-                  activeMood === mood.id 
-                    ? 'bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-white/10' 
-                    : 'hover:bg-white/5 opacity-40 hover:opacity-100 border border-transparent'
-                }`}
                 title={mood.name}
+                className={`flex justify-center items-center p-2 rounded-md transition-colors ${
+                  activeMood === mood.id 
+                    ? 'bg-accent/10 text-accent' 
+                    : 'text-muted-foreground hover:bg-surface-hover hover:text-foreground'
+                }`}
               >
-                <mood.icon className={`w-5 h-5 ${activeMood === mood.id ? mood.color : 'text-white'}`} />
-                {isSidebarOpen && (
-                  <motion.span 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-[6px] font-black uppercase tracking-tighter text-white/40"
-                  >
-                    {mood.name}
-                  </motion.span>
-                )}
-              </motion.button>
+                <mood.icon className="w-5 h-5 shrink-0" />
+              </button>
             ))}
           </div>
         </div>
+
+        {/* Sidebar Toggle */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="absolute -right-3.5 top-8 w-7 h-7 rounded-full bg-surface border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-hover transition-colors z-40"
+        >
+          {isSidebarOpen ? <ChevronLeftIcon className="w-4 h-4" /> : <ChevronRightIcon className="w-4 h-4" />}
+        </button>
       </motion.aside>
 
       {/* Main Content Area */}
-      <main 
-        className="transition-all duration-700"
-        style={{ paddingLeft: isSidebarOpen ? '300px' : '100px' }}
-      >
-        <header className="fixed top-0 right-0 left-0 h-24 z-40 glass-nav flex items-center justify-between px-12 pointer-events-none">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
+        {/* Top Header */}
+        <header className="h-16 px-8 flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-md border-b border-border z-20">
           <div className="flex-1" />
-          <div className="flex items-center gap-8 pointer-events-auto">
-            <div className="hidden md:flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-white/40">
-              <Link to="/docs" className="hover:text-white cursor-pointer transition">Docs</Link>
-              <Link to="/privacy-settings" className="hover:text-white cursor-pointer transition">Security</Link>
-              <Link to="/analytics" className="hover:text-white cursor-pointer transition">Portal</Link>
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
+              <Link to="/docs" className="hover:text-foreground transition-colors">Docs</Link>
+              <Link to="/privacy-settings" className="hover:text-foreground transition-colors">Security</Link>
+              <Link to="/analytics" className="hover:text-foreground transition-colors">Portal</Link>
             </div>
             
             <div className="relative">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
+              <button
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                className="flex items-center gap-3 glass-panel border-white/10 px-4 py-2 rounded-2xl"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-surface-hover transition-colors"
               >
                 <img 
-                  src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&background=9333ea&color=fff`} 
+                  src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&background=27272a&color=f4f4f5`} 
                   alt="" 
-                  className="w-8 h-8 rounded-xl object-cover"
+                  className="w-7 h-7 rounded-md object-cover border border-border"
                 />
-                <span className="text-xs font-black text-white">{user?.username}</span>
-              </motion.button>
+                <span className="text-sm font-medium text-foreground">{user?.username}</span>
+              </button>
 
               <AnimatePresence>
                 {showProfileDropdown && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
-                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                    exit={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
-                    className="absolute right-0 mt-4 w-56 glass-panel border-white/10 rounded-3xl p-3 z-50 overflow-hidden"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    className="absolute right-0 mt-2 w-56 bg-surface border border-border rounded-xl shadow-lg py-2 z-50"
                   >
-                    <Link to={`/profile/${user?._id}`} className="flex items-center gap-3 p-4 hover:bg-white/5 rounded-2xl text-xs font-bold text-white transition">
-                      <UserIcon className="w-5 h-5 text-purple-400" /> My Profile
+                    <Link to={`/profile/${user?._id}`} className="flex items-center gap-3 px-4 py-2 hover:bg-surface-hover text-sm font-medium text-foreground transition-colors">
+                      <UserIcon className="w-4 h-4 text-muted-foreground" /> Profile
                     </Link>
                     <button 
                       onClick={logout}
-                      className="w-full flex items-center gap-3 p-4 hover:bg-red-500/10 rounded-2xl text-xs font-bold text-red-400 transition"
+                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-500/10 text-sm font-medium text-red-500 transition-colors"
                     >
-                      <PowerIcon className="w-5 h-5" /> Disconnect
+                      <PowerIcon className="w-4 h-4" /> Sign out
                     </button>
                   </motion.div>
                 )}
@@ -222,18 +189,21 @@ const Layout = ({ children }) => {
           </div>
         </header>
 
-        <div className="pt-32 px-12 max-w-7xl mx-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.5 }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+        {/* Page Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-5xl mx-auto px-8 py-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </main>
     </div>
