@@ -10,6 +10,7 @@ import { storiesAPI } from '../services/storiesAPI';
 import { reelsAPI } from '../services/reelsAPI';
 import { useAuth } from '../context/AuthContext';
 import { useMood } from '../context/MoodContext';
+import { useWellness } from '../context/WellnessContext';
 import {
   BoltIcon,
   SparklesIcon,
@@ -109,7 +110,7 @@ const SuggestedCreator = ({ creator, index }) => (
 const Home = () => {
   const { user } = useAuth();
   const { activeMood } = useMood();
-  const isProductivityMode = user?.moodAnalytics?.burnoutIndex > 50;
+  const { focusMode } = useWellness();
 
   const [posts, setPosts] = useState([]);
   const [stories, setStories] = useState([]);
@@ -124,7 +125,7 @@ const Home = () => {
 
   useEffect(() => {
     loadInitialData();
-  }, [activeMood, isProductivityMode]);
+  }, [activeMood, focusMode]);
 
   const loadInitialData = async () => {
     try {
@@ -133,7 +134,7 @@ const Home = () => {
       setPage(1);
 
       const [postsRes, storiesRes, reelsRes] = await Promise.allSettled([
-        postsAPI.getFeedPosts(1, 10, activeMood, isProductivityMode),
+        postsAPI.getFeedPosts(1, 10, activeMood, focusMode),
         storiesAPI.getStories(activeMood),
         reelsAPI.getReels(6, activeMood, []),
       ]);
@@ -167,7 +168,7 @@ const Home = () => {
     if (!hasMore || loading) return;
     try {
       const nextPage = page + 1;
-      const response = await postsAPI.getFeedPosts(nextPage, 10, activeMood, isProductivityMode);
+      const response = await postsAPI.getFeedPosts(nextPage, 10, activeMood, focusMode);
       const newPosts = Array.isArray(response.data?.posts) ? response.data.posts : [];
       setPosts(prev => [...prev, ...newPosts]);
       setHasMore(response.data?.hasMore || false);
@@ -226,8 +227,9 @@ const Home = () => {
         {/* ── Main Feed Column ──────────────────────────────────────────────── */}
         <div className="lg:col-span-8 space-y-6">
 
-          {/* 1. Stories Row ─────────────────────────────────────────────────── */}
-          <section className="bg-surface border border-border rounded-xl p-4">
+          {/* 1. Stories Row (Hidden in Focus Mode) ─────────────────────────────────────────────────── */}
+          {!focusMode && (
+            <section className="bg-surface border border-border rounded-xl p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <BoltIcon className="w-4 h-4 text-accent" />
@@ -268,9 +270,10 @@ const Home = () => {
               ))}
             </div>
           </section>
+          )}
 
-          {/* 2. Reel Previews ────────────────────────────────────────────────── */}
-          {(reelPreviews.length > 0 || loading) && (
+          {/* 2. Reel Previews (Hidden in Focus Mode) ────────────────────────────────────────────────── */}
+          {!focusMode && (reelPreviews.length > 0 || loading) && (
             <section className="bg-surface border border-border rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -305,6 +308,15 @@ const Home = () => {
 
           {/* 4. Mood Feed Posts ──────────────────────────────────────────────── */}
           <div>
+            {focusMode && (
+               <div className="mb-4 p-4 rounded-xl bg-accent/10 border border-accent/20 flex flex-col gap-2">
+                 <div className="flex items-center gap-2">
+                   <BoltIcon className="w-5 h-5 text-accent animate-pulse" />
+                   <h3 className="text-sm font-bold text-accent uppercase tracking-widest">Focus Mode Active</h3>
+                 </div>
+                 <p className="text-xs text-muted-foreground">Distractions hidden. Feed prioritized for productivity and learning.</p>
+               </div>
+            )}
             <div className="flex items-center gap-2 mb-4">
               <FireIcon className="w-4 h-4 text-accent" />
               <h2 className="text-sm font-semibold text-foreground">

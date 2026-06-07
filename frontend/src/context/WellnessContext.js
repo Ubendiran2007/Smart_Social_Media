@@ -9,7 +9,8 @@ import {
   HandRaisedIcon, 
   EyeIcon, 
   BellIcon,
-  NoSymbolIcon
+  NoSymbolIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import { GlassCard, NeonButton, AIBadge } from '../components/ui/SiliconValley';
 import { usersAPI } from '../services/usersAPI';
@@ -20,24 +21,34 @@ export const WellnessProvider = ({ children }) => {
   const { user, token } = useAuth();
   const { activeMood } = useMood();
   
-  // Settings
+  // Custom Reminder Settings (intervals: 15, 30, 45, 60 mins)
   const [remindersEnabled, setRemindersEnabled] = useState(() => {
     return localStorage.getItem('sentient_wellness_enabled') !== 'false';
   });
   const [reminderInterval, setReminderInterval] = useState(() => {
-    return parseInt(localStorage.getItem('sentient_wellness_interval')) || 30000; // Default 30s for demo
+    return parseInt(localStorage.getItem('sentient_wellness_interval')) || 30 * 60000; 
   });
   const [focusMode, setFocusMode] = useState(false);
   
-  // State
+  // Tracking Metrics
   const [sessionStartTime] = useState(Date.now());
   const [reelCount, setReelCount] = useState(0);
+  
+  // Advanced metrics
+  const [dailyScreenTime, setDailyScreenTime] = useState(0);
+  const [weeklyScreenTime, setWeeklyScreenTime] = useState(0);
+  const [reelsWatchTime, setReelsWatchTime] = useState(0); // tracking reels watch time locally
+  const [feedScrollingTime, setFeedScrollingTime] = useState(0);
+  
   const [showReminder, setShowReminder] = useState(null);
-  const [burnoutIndex, setBurnoutIndex] = useState(24);
-  const [dailySessions, setDailySessions] = useState(1);
+  const [burnoutScore, setBurnoutScore] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   
+  const [focusStreaks, setFocusStreaks] = useState(0);
+  const [learningStreaks, setLearningStreaks] = useState(0);
+  
   const metricsInterval = useRef(null);
+  const trackingInterval = useRef(null);
   const reminderTimer = useRef(null);
 
   // Persistence
@@ -56,14 +67,51 @@ export const WellnessProvider = ({ children }) => {
     return () => stopReminderTimer();
   }, [remindersEnabled, reminderInterval, isLocked, focusMode]);
 
-  // Sync Metrics
+  // Local Tracking loop (increments active time)
+  useEffect(() => {
+    if (user && token && !isLocked) {
+      trackingInterval.current = setInterval(() => {
+        setDailyScreenTime(prev => prev + 1);
+        setWeeklyScreenTime(prev => prev + 1);
+        
+        // Very basic mock of user activity routing logic: 
+        // If window URL contains "reels", increment reelsWatchTime
+        if (window.location.pathname.includes('/reels')) {
+          setReelsWatchTime(prev => prev + 1);
+        } else if (window.location.pathname === '/') {
+          setFeedScrollingTime(prev => prev + 1);
+        }
+
+        calculateBurnoutScore();
+      }, 60000); // every minute
+    }
+    return () => clearInterval(trackingInterval.current);
+  }, [user, token, isLocked]);
+
+  // Sync Metrics to backend periodically
   useEffect(() => {
     if (user && token) {
       loadInitialWellness();
-      metricsInterval.current = setInterval(syncWellnessMetrics, 2 * 60 * 1000);
+      metricsInterval.current = setInterval(syncWellnessMetrics, 5 * 60 * 1000);
     }
     return () => clearInterval(metricsInterval.current);
   }, [user, token]);
+
+  const calculateBurnoutScore = () => {
+    // Burnout factors:
+    // + continuous scrolling (feedScrollingTime)
+    // + excessive usage (dailyScreenTime > 120 mins)
+    // + rapid content consumption (reelCount)
+    setBurnoutScore(prev => {
+      let score = prev;
+      score += 0.5; // base increase per minute
+      if (window.location.pathname.includes('/reels')) score += 1; // reels drain faster
+      if (activeMood === 'Productive' || activeMood === 'Learning') score -= 0.5; // learning/productive slows burnout
+      if (focusMode) score -= 1; // focus mode actively recovers
+      
+      return Math.min(100, Math.max(0, Math.floor(score)));
+    });
+  };
 
   const startReminderTimer = () => {
     stopReminderTimer();
@@ -81,56 +129,59 @@ export const WellnessProvider = ({ children }) => {
   const triggerSmartReminder = () => {
     const sessionTime = Math.floor((Date.now() - sessionStartTime) / 60000);
     
-    // Choose reminder type based on activity and mood
+    // Smart Interventions based on activity
     let type = 'general';
-    if (reelCount > 10) type = 'eyes';
-    if (sessionTime > 15) type = 'stretch';
-    if (activeMood === 'Productive') type = 'focus';
+    if (reelsWatchTime > 20) type = 'eyes';
+    if (feedScrollingTime > 30) type = 'scrolling';
+    if (sessionTime > 60) type = 'stretch';
+    if (activeMood === 'Productive' && !focusMode) type = 'focus';
     
     const messages = {
       general: {
-        title: 'Hydration Sync',
-        message: 'Your neural circuits need fluid. Take a sip of water to maintain peak performance.',
+        title: 'Hydration Check',
+        message: 'Stay hydrated 💧 Your neural circuits need fluid. Take a sip of water.',
         icon: BeakerIcon,
         color: 'cyan'
       },
       eyes: {
         title: 'Optical Reset',
-        message: 'You have processed significant visual data. Rest your eyes for 20 seconds.',
+        message: "You've been watching reels for a while. Rest your eyes for 20 seconds.",
         icon: EyeIcon,
         color: 'purple'
       },
+      scrolling: {
+        title: 'Scrolling Warning',
+        message: "You've been scrolling for 30+ minutes. Time for a short break?",
+        icon: ClockIcon,
+        color: 'rose'
+      },
       stretch: {
         title: 'Physical Calibration',
-        message: 'Session duration detected. Stretch and realign your posture for better flow.',
+        message: 'Session duration over an hour. Stretch and realign your posture.',
         icon: HandRaisedIcon,
         color: 'emerald'
       },
       focus: {
         title: 'Flow State Guard',
-        message: 'You are in deep productivity. Consider enabling Focus Mode to minimize interruptions.',
+        message: 'You are highly productive right now. Consider a 5-minute focus reset or turning on Focus Mode.',
         icon: BoltIcon,
         color: 'orange'
       }
     };
 
-    // Mood-specific overrides
     const selected = { ...messages[type] || messages.general };
-    if (activeMood === 'Funny') {
-      selected.message = "Your brain deserves a loading screen too. Take a 30-second break 💀";
-    } else if (activeMood === 'Calm') {
-      selected.message = "Take a deep breath and let the neural pulses settle 🌙";
-    }
-
     setShowReminder(selected);
   };
 
   const loadInitialWellness = async () => {
     try {
       const res = await usersAPI.getWellness();
-      setBurnoutIndex(res.data.burnoutIndex);
-      setDailySessions(res.data.dailySessions);
-      if (res.data.burnoutIndex > 90) setIsLocked(true);
+      // Use their stored backend index initially
+      setBurnoutScore(res.data.burnoutIndex || 10);
+      setDailyScreenTime(res.data.dailySessions * 30 || 45); // Mock
+      setWeeklyScreenTime(res.data.dailySessions * 150 || 300); // Mock
+      setFocusStreaks(3);
+      setLearningStreaks(5);
     } catch (err) {
       console.error("Wellness: Failed to load context", err);
     }
@@ -141,21 +192,19 @@ export const WellnessProvider = ({ children }) => {
       const sessionMinutes = Math.floor((Date.now() - sessionStartTime) / 60000);
       const res = await usersAPI.syncWellness({
         sessionTime: sessionMinutes,
-        reelsWatched: reelCount
+        reelsWatched: reelCount,
+        burnoutScore: burnoutScore
       });
 
-      setBurnoutIndex(res.data.burnoutIndex);
-      setDailySessions(res.data.dailySessions);
-
-      if (res.data.isHighRisk && !showReminder) {
+      if (res.data.isHighRisk && !showReminder && !focusMode) {
         setShowReminder({
           title: 'Neural Overload',
-          message: res.data.recommendation,
+          message: "Critical burnout risk detected. Please disconnect and recover.",
           type: 'burnout',
           icon: NoSymbolIcon,
           color: 'rose'
         });
-        if (res.data.burnoutIndex > 90) setIsLocked(true);
+        if (burnoutScore > 90) setIsLocked(true);
       }
     } catch (error) {
       console.error('Wellness: Sync failure', error);
@@ -172,16 +221,26 @@ export const WellnessProvider = ({ children }) => {
     }, 5 * 60 * 1000);
   };
 
+  const toggleFocusMode = () => {
+    setFocusMode(!focusMode);
+  };
+
   return (
     <WellnessContext.Provider value={{ 
       incrementReelCount, 
-      burnoutIndex, 
-      dailySessions,
+      burnoutScore,
+      dailyScreenTime,
+      weeklyScreenTime,
+      reelsWatchTime,
+      feedScrollingTime,
+      focusStreaks,
+      learningStreaks,
       remindersEnabled,
       setRemindersEnabled,
       reminderInterval,
       setReminderInterval,
       focusMode,
+      toggleFocusMode,
       setFocusMode
     }}>
       {children}
@@ -196,12 +255,12 @@ export const WellnessProvider = ({ children }) => {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-rose-900/20 via-black to-black" />
             <GlassCard className="max-w-lg p-12 text-center border-rose-500/50 shadow-[0_0_100px_rgba(225,29,72,0.2)]">
               <NoSymbolIcon className="w-20 h-20 text-rose-500 mx-auto mb-8 animate-pulse" />
-              <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-4">Neural Exhaustion</h2>
+              <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-4">Burnout Prevented</h2>
               <p className="text-sm font-medium text-white/60 leading-relaxed mb-10 uppercase tracking-widest">
-                The Neural Guard has detected critical burnout levels ({burnoutIndex}%). Access to the collective stream has been paused. Disconnect and recover.
+                Sentient AI has detected critical burnout levels ({burnoutScore}%). Access to the infinite scroll has been paused to protect your mental wellness.
               </p>
               <NeonButton variant="rose" className="px-12 py-5" onClick={() => window.location.href = 'about:blank'}>
-                DISCONNECT NOW
+                DISCONNECT & RECOVER
               </NeonButton>
             </GlassCard>
           </motion.div>
@@ -225,7 +284,7 @@ export const WellnessProvider = ({ children }) => {
                   </div>
                   <div>
                     <h3 className="text-lg font-black text-white uppercase tracking-tighter italic">{showReminder.title}</h3>
-                    <AIBadge>WELLNESS INTERFACE</AIBadge>
+                    <AIBadge>WELLNESS COACH</AIBadge>
                   </div>
                 </div>
                 

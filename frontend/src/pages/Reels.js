@@ -5,11 +5,13 @@ import ReelPlayer from "../components/reels/ReelPlayer";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { useMood } from "../context/MoodContext";
-import { ArrowPathIcon } from "@heroicons/react/24/outline";
+import { useWellness } from "../context/WellnessContext";
+import { ArrowPathIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 
 const Reels = () => {
   const { user } = useAuth();
   const { activeMood } = useMood();
+  const { focusMode, toggleFocusMode } = useWellness();
   const currentMood = activeMood;
   const [reels, setReels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,8 +49,8 @@ const Reels = () => {
   };
 
   useEffect(() => {
-    loadReels(true);
-  }, [currentMood]);
+    if (!focusMode) loadReels(true);
+  }, [currentMood, focusMode]);
 
   if (loading && reels.length === 0) {
     return (
@@ -61,7 +63,23 @@ const Reels = () => {
 
   return (
     <div className="fixed inset-0 bg-black z-0 overflow-hidden flex justify-center">
-      {error && reels.length === 0 ? (
+      {focusMode ? (
+        <div className="h-full flex flex-col items-center justify-center p-10 text-center gap-6 relative z-10 w-full bg-black/90">
+          <div className="w-20 h-20 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4">
+            <ShieldCheckIcon className="w-10 h-10 text-accent animate-pulse" />
+          </div>
+          <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Focus Mode Active</h2>
+          <p className="text-sm font-medium text-white/60 max-w-sm">
+            Entertainment reels are disabled while Focus Mode is active. Protect your flow state and continue building.
+          </p>
+          <button 
+            onClick={toggleFocusMode}
+            className="mt-4 px-6 py-3 rounded-xl bg-white/10 border border-white/20 text-xs font-semibold text-white hover:bg-white/20 transition-all"
+          >
+            Disable Focus Mode
+          </button>
+        </div>
+      ) : error && reels.length === 0 ? (
         <div className="h-full flex flex-col items-center justify-center p-10 text-center gap-6 relative z-10">
           <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
             <ArrowPathIcon className="w-8 h-8 text-red-400" />
