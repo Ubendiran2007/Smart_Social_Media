@@ -2,9 +2,10 @@ const Post = require('../../models/Post');
 const User = require('../../models/User');
 const Notification = require('../../models/Notification');
 const cloudinary = require('../../config/cloudinary');
+const HashtagIntelligenceService = require('../../services/HashtagIntelligenceService');
 const fs = require('fs');
 
-// Create post with AI Analysis
+// Create post with Real Hashtag Intelligence
 const createPost = async (req, res) => {
   try {
     const { caption } = req.body;
@@ -13,12 +14,18 @@ const createPost = async (req, res) => {
       return res.status(400).json({ message: 'Image is required' });
     }
 
-    // AI Analysis
+    // NLP-based analysis — derives hashtags, keywords, and mood from actual caption text
     const AIService = require('../../services/AIService');
-    const moodAnalysis = await AIService.analyzeMood(caption || '');
-    // Fetch suggestions based on detected mood to get keywords/hashtags
-    const suggestions = await AIService.generateCaptionSuggestions(moodAnalysis.mood);
-    const toxicity = await AIService.analyzeToxicity(caption || '');
+    const [moodAnalysis, toxicity, nlpAnalysis] = await Promise.all([
+      AIService.analyzeMood(caption || ''),
+      AIService.analyzeToxicity(caption || ''),
+      Promise.resolve(HashtagIntelligenceService.analyzeCaption(caption || ''))
+    ]);
+
+    // Merge mood from both analyzers — prefer nlpAnalysis when they agree
+    const finalMood = nlpAnalysis.emotionCategory !== 'None' 
+      ? nlpAnalysis.emotionCategory 
+      : moodAnalysis.mood;
 
     // Upload to Cloudinary
     let imageUrl = '';
@@ -38,11 +45,11 @@ const createPost = async (req, res) => {
       caption: caption || '',
       image: imageUrl,
       aiMetadata: {
-        sentiment: moodAnalysis.sentiment,
+        sentiment: moodAnalysis.sentiment || 'Neutral',
         toxicityScore: toxicity.score,
-        hashtags: suggestions.hashtags,
-        keywords: suggestions.keywords,
-        emotionCategory: moodAnalysis.mood
+        hashtags: nlpAnalysis.hashtags,      // Real NLP-extracted hashtags
+        keywords: nlpAnalysis.keywords,      // Real NLP-extracted keywords
+        emotionCategory: finalMood           // Real mood detection
       }
     });
 

@@ -24,6 +24,7 @@ import Notifications from './pages/Notifications';
 import Search from './pages/Search';
 import Create from './pages/Create';
 import AnalyticsDashboard from './pages/AnalyticsDashboard';
+import HashtagFeed from './pages/HashtagFeed';
 import Layout from './components/common/Layout';
 
 import Loading from './components/common/Loading';
@@ -179,6 +180,13 @@ function AppContent() {
           <ProtectedRoute>
             <Layout>
               <Wellness />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/hashtag/:tag" element={
+          <ProtectedRoute>
+            <Layout>
+              <HashtagFeed />
             </Layout>
           </ProtectedRoute>
         } />

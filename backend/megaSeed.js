@@ -197,8 +197,8 @@ const seedData = async () => {
         caption: moodCaptions[mood][i % moodCaptions[mood].length],
         aiMetadata: {
           sentiment: 'Positive',
-          moodCategory: mood,
-          suggestedHashtags: [mood, 'Sentient', 'TechLife']
+          emotionCategory: mood,
+          hashtags: [mood, 'Sentient', 'TechLife']
         }
       });
     }
