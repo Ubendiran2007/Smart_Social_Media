@@ -7,8 +7,8 @@ export const reelsAPI = {
   }),
 
   // Get reels
-  getReels: (page = 1, limit = 10, mood = 'None') => 
-    api.get(`/reels?page=${page}&limit=${limit}&mood=${mood}`),
+  getReels: (limit = 5, mood = 'None', viewedIds = []) => 
+    api.get(`/reels?limit=${limit}&mood=${mood}&viewed=${viewedIds.join(',')}`),
 
   // Like/Unlike reel
   toggleLike: (reelId) => api.put(`/reels/${reelId}/like`),

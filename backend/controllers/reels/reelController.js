@@ -64,41 +64,73 @@ const createReel = async (req, res) => {
   }
 };
 
-// Get reels with infinite scroll
+// Get reels with smart feed logic
 const getReels = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 5;
     const moodFilter = req.query.mood;
-    const skip = (page - 1) * limit;
+    const viewedIds = req.query.viewed ? req.query.viewed.split(',') : [];
 
-    console.log(`Backend: Fetching reels - Page: ${page}, Limit: ${limit}, Mood: ${moodFilter}`);
+    console.log(`Backend: Fetching reels - Limit: ${limit}, Mood: ${moodFilter}, Viewed: ${viewedIds.length}`);
 
     let query = {};
     if (moodFilter && moodFilter !== 'None') {
       query['aiMetadata.emotionCategory'] = moodFilter;
     }
 
-    const reels = await Reel.find(query)
+    // Attempt 1: Fetch unseen reels matching mood
+    let reels = await Reel.find({ ...query, _id: { $nin: viewedIds } })
       .populate('user', 'username fullName avatar')
       .populate('likes.user', 'username fullName avatar')
       .populate('comments.user', 'username fullName avatar')
       .sort({ createdAt: -1 })
-      .skip(skip)
       .limit(limit);
 
-    const totalReels = await Reel.countDocuments(query); // Count should respect query
+    // Fallback 1: If absolutely no reels exist for this mood (even seen ones), fallback to General
+    if (reels.length === 0 && viewedIds.length === 0 && moodFilter && moodFilter !== 'None') {
+      const moodCount = await Reel.countDocuments(query);
+      if (moodCount === 0) {
+        console.log(`No reels found for ${moodFilter}. Falling back to general pool.`);
+        query = {}; // General pool
+        reels = await Reel.find({ _id: { $nin: viewedIds } })
+          .populate('user', 'username fullName avatar')
+          .populate('likes.user', 'username fullName avatar')
+          .populate('comments.user', 'username fullName avatar')
+          .sort({ createdAt: -1 })
+          .limit(limit);
+      }
+    }
 
-    console.log(`Backend: Found ${reels.length} reels out of total ${totalReels}`);
+    // Fallback 2: If user has seen all matching reels, shuffle and repeat!
+    if (reels.length === 0 && viewedIds.length > 0) {
+      console.log(`All reels viewed for query. Shuffling!`);
+      // Ignore viewedIds and just sample randomly
+      let sampleQuery = Object.keys(query).length > 0 ? query : {};
+      
+      reels = await Reel.aggregate([
+        { $match: sampleQuery },
+        { $sample: { size: limit } }
+      ]);
+      
+      // If still empty (e.g. mood filter exists but 0 matches), drop filter and sample
+      if (reels.length === 0) {
+        reels = await Reel.aggregate([{ $sample: { size: limit } }]);
+      }
+
+      reels = await Reel.populate(reels, [
+        { path: 'user', select: 'username fullName avatar' },
+        { path: 'likes.user', select: 'username fullName avatar' },
+        { path: 'comments.user', select: 'username fullName avatar' }
+      ]);
+    }
 
     res.json({ 
       success: true, 
       reels, 
-      page, 
-      totalPages: Math.ceil(totalReels / limit),
-      hasMore: skip + reels.length < totalReels
+      hasMore: true // Endless feed
     });
   } catch (error) {
+    console.error('getReels Error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
