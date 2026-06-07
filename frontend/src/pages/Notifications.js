@@ -17,6 +17,7 @@ import {
   VideoCameraIcon
 } from '@heroicons/react/24/outline';
 import { GlassCard, AIBadge } from '../components/ui/SiliconValley';
+import { useMood } from '../context/MoodContext';
 
 // Helper for date grouping
 const categorizeDate = (dateString) => {
@@ -41,6 +42,7 @@ const ActivityCenter = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState('All Activity');
   const { socket } = useSocket();
+  const { activeMood, theme } = useMood();
 
   const tabs = ['All Activity', 'Social Activity', 'AI Insights', 'Productivity', 'Collaboration'];
 
@@ -213,15 +215,15 @@ const ActivityCenter = () => {
            </GlassCard>
            <GlassCard className="p-4 bg-surface border border-border relative overflow-hidden group cursor-pointer hover:border-accent transition-colors">
              <div className="flex items-center gap-3 mb-2 relative z-10">
-               <div className="p-2 rounded-lg bg-purple-500/10">
-                 <LightBulbIcon className="w-4 h-4 text-purple-500" />
+               <div className="p-2 rounded-lg" style={{ backgroundColor: `${theme.accent}15` }}>
+                 <LightBulbIcon className="w-4 h-4" style={{ color: theme.accent }} />
                </div>
-               <span className="text-xs font-semibold text-purple-500 group-hover:text-accent transition-colors">AI Action</span>
+               <span className="text-xs font-semibold transition-colors" style={{ color: theme.accent }}>{theme.name} AI Action</span>
              </div>
              <p className="text-xs font-medium text-foreground relative z-10 leading-snug">
-               Productivity Score increased 12%. Join a Coding Room?
+               {theme.activityLabel} increased by 12%. Join {theme.chatRoom}?
              </p>
-             <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+             <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity" style={{ background: theme.gradient }} />
            </GlassCard>
         </div>
       </motion.div>

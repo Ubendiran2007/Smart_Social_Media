@@ -219,10 +219,11 @@ const updateProfile = async (req, res) => {
 const searchUsers = async (req, res) => {
   try {
     const q = req.query.q || req.query.query;
+    const mood = req.query.mood;
     const currentUserId = req.user.id;
     const currentUser = await User.findById(currentUserId);
     
-    console.log(`Backend: Search query: "${q || 'Discovery Mode'}"`);
+    console.log(`Backend: Search query: "${q || 'Discovery Mode'}", Mood: ${mood || 'None'}`);
     
     // CASE 1: Empty Query - Discovery Mode (Recommendations)
     if (!q) {
@@ -233,13 +234,26 @@ const searchUsers = async (req, res) => {
         _id: { $ne: currentUserId },
         $or: [
           { 'professionalProfile.skills': { $in: currentUser?.professionalProfile?.skills || [] } },
-          { interests: { $in: currentUser?.interests || [] } }
+          { interests: { $in: currentUser?.interests || [] } },
+          ...(mood && mood !== 'None' ? [{ 'moodAnalytics.currentMood': mood }] : [])
         ]
       })
       .select('username fullName avatar bio professionalProfile.skills verified followers interests moodAnalytics')
       .limit(6);
 
       suggested = neuralMatches;
+
+      // 1.5. If mood specified, try to find top users in that mood
+      if (mood && mood !== 'None' && suggested.length < 10) {
+        const moodMatches = await User.find({
+            _id: { $ne: currentUserId, $nin: suggested.map(u => u._id) },
+            'moodAnalytics.currentMood': mood
+        })
+        .select('username fullName avatar bio professionalProfile.skills verified followers interests moodAnalytics')
+        .limit(10 - suggested.length);
+        
+        suggested = [...suggested, ...moodMatches];
+      }
 
       // 2. Global Fallback (Trending/Active)
       if (suggested.length < 10) {
@@ -275,13 +289,21 @@ const searchUsers = async (req, res) => {
     const searchRegex = { $regex: `^${q}`, $options: 'i' };
     const broaderRegex = { $regex: q, $options: 'i' };
     
-    let users = await User.find({
-      _id: { $ne: currentUserId },
-      $or: [
+    const queryConds = [
         { username: searchRegex },
         { fullName: searchRegex }
-      ]
-    })
+    ];
+
+    const matchQuery = {
+      _id: { $ne: currentUserId },
+      $or: queryConds
+    };
+
+    if (mood && mood !== 'None') {
+       matchQuery['moodAnalytics.currentMood'] = mood;
+    }
+
+    let users = await User.find(matchQuery)
     .select('username fullName avatar bio professionalProfile.skills verified followers following moodAnalytics.currentMood')
     .limit(15);
 

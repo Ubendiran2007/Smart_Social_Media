@@ -4,47 +4,85 @@
 
 @layer base {
   :root {
-    /* Core Layout & Colors (Linear/Notion inspired dark mode) */
-    --bg-deep: #0e0e11;        /* Very dark gray, almost black */
-    --bg-surface: #18181b;     /* Zinc 900 for cards/panels */
-    --bg-surface-hover: #27272a; /* Zinc 800 */
-    
-    --border-subtle: rgba(255, 255, 255, 0.08); /* Subtle border for separation */
-    --border-strong: rgba(255, 255, 255, 0.15); /* Stronger border for hover states */
-    
-    --text-primary: #f4f4f5;   /* Zinc 100 - Main text */
-    --text-secondary: #a1a1aa; /* Zinc 400 - Muted text */
-    --text-tertiary: #71717a;  /* Zinc 500 - Deeply muted / borders */
+    /* ── Base Layout (unchanged, dark SaaS palette) ─────────────────────── */
+    --bg-deep:         #0e0e11;
+    --bg-surface:      #18181b;
+    --bg-surface-hover:#27272a;
 
-    /* Default Mood: Motivational (Energetic Orange/Yellow) */
-    --mood-primary: #f97316;
-    --mood-primary-hover: #ea580c;
-    --mood-primary-muted: rgba(249, 115, 22, 0.1);
+    --border-subtle:   rgba(255, 255, 255, 0.08);
+    --border-strong:   rgba(255, 255, 255, 0.15);
+
+    --text-primary:    #f4f4f5;
+    --text-secondary:  #a1a1aa;
+    --text-tertiary:   #71717a;
+
+    /* ── DEFAULT (Motivational / Orange) ────────────────────────────────── */
+    --accent:          #f97316;
+    --accent-hover:    #ea580c;
+    --accent-muted:    rgba(249, 115, 22, 0.12);
+    --accent-glow:     rgba(249, 115, 22, 0.35);
+    --mood-gradient:   linear-gradient(135deg, #f97316, #ef4444);
+    --mood-name:       "Motivational";
   }
 
-  /* Theme Configurations */
-  [data-mood="Productive"] {
-    --mood-primary: #3b82f6; /* Blue */
-    --mood-primary-hover: #2563eb;
-    --mood-primary-muted: rgba(59, 130, 246, 0.1);
+  /* ── PRODUCTIVE  → Blue ─────────────────────────────────────────────── */
+  [data-mood="productive"] {
+    --accent:          #3b82f6;
+    --accent-hover:    #2563eb;
+    --accent-muted:    rgba(59, 130, 246, 0.12);
+    --accent-glow:     rgba(59, 130, 246, 0.35);
+    --mood-gradient:   linear-gradient(135deg, #3b82f6, #6366f1);
+    --mood-name:       "Productive";
   }
 
-  [data-mood="Calm"] {
-    --mood-primary: #a855f7; /* Purple */
-    --mood-primary-hover: #9333ea;
-    --mood-primary-muted: rgba(168, 85, 247, 0.1);
+  /* ── LEARNING    → Cyan ─────────────────────────────────────────────── */
+  [data-mood="learning"] {
+    --accent:          #06b6d4;
+    --accent-hover:    #0891b2;
+    --accent-muted:    rgba(6, 182, 212, 0.12);
+    --accent-glow:     rgba(6, 182, 212, 0.35);
+    --mood-gradient:   linear-gradient(135deg, #06b6d4, #3b82f6);
+    --mood-name:       "Learning";
   }
 
-  [data-mood="Learning"] {
-    --mood-primary: #06b6d4; /* Cyan */
-    --mood-primary-hover: #0891b2;
-    --mood-primary-muted: rgba(6, 182, 212, 0.1);
+  /* ── CALM        → Purple ───────────────────────────────────────────── */
+  [data-mood="calm"] {
+    --accent:          #a855f7;
+    --accent-hover:    #9333ea;
+    --accent-muted:    rgba(168, 85, 247, 0.12);
+    --accent-glow:     rgba(168, 85, 247, 0.35);
+    --mood-gradient:   linear-gradient(135deg, #a855f7, #6366f1);
+    --mood-name:       "Calm";
   }
 
-  [data-mood="Funny"] {
-    --mood-primary: #ec4899; /* Pink */
-    --mood-primary-hover: #db2777;
-    --mood-primary-muted: rgba(236, 72, 153, 0.1);
+  /* ── FUNNY       → Pink ─────────────────────────────────────────────── */
+  [data-mood="funny"] {
+    --accent:          #ec4899;
+    --accent-hover:    #db2777;
+    --accent-muted:    rgba(236, 72, 153, 0.12);
+    --accent-glow:     rgba(236, 72, 153, 0.35);
+    --mood-gradient:   linear-gradient(135deg, #ec4899, #f97316);
+    --mood-name:       "Funny";
+  }
+
+  /* ── MOTIVATIONAL→ Orange (default already set above in :root) ──────── */
+  [data-mood="motivational"] {
+    --accent:          #f97316;
+    --accent-hover:    #ea580c;
+    --accent-muted:    rgba(249, 115, 22, 0.12);
+    --accent-glow:     rgba(249, 115, 22, 0.35);
+    --mood-gradient:   linear-gradient(135deg, #f97316, #ef4444);
+    --mood-name:       "Motivational";
+  }
+
+  /* ── NONE / default fallback ────────────────────────────────────────── */
+  [data-mood="none"] {
+    --accent:          #8b5cf6;
+    --accent-hover:    #7c3aed;
+    --accent-muted:    rgba(139, 92, 246, 0.12);
+    --accent-glow:     rgba(139, 92, 246, 0.35);
+    --mood-gradient:   linear-gradient(135deg, #8b5cf6, #6366f1);
+    --mood-name:       "General";
   }
 
   body {
@@ -55,80 +93,86 @@
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
     padding: 0;
+    /* Smooth accent transitions across the whole document */
+    transition: --accent 0.5s, --accent-hover 0.5s, --accent-muted 0.5s, --mood-gradient 0.5s;
   }
 }
 
 @layer utilities {
-  /* Minimal Custom Scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: var(--border-strong);
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-tertiary);
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Mood glow utility — applies to accent-colored elements */
+  .mood-glow {
+    box-shadow: 0 0 20px var(--accent-glow);
   }
 
-  /* No-scrollbar utility */
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
+  /* Mood gradient text */
+  .mood-gradient-text {
+    background: var(--mood-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+
+  /* Animated accent border */
+  .accent-border {
+    border-color: var(--accent);
+    transition: border-color 0.5s;
   }
 }
 
 @layer components {
-  /* 
-   * Professional SaaS Card 
-   * Replaces the old heavy glassmorphism with a clean, flat, slightly elevated look.
-   */
+  /* ── Cards ─────────────────────────────────────────────────────────── */
   .card-base {
     @apply bg-surface border border-border rounded-xl shadow-card transition-all duration-200;
   }
-  
   .card-hover:hover {
     @apply border-border-strong shadow-card-hover transform -translate-y-0.5;
   }
 
-  /* 
-   * Form Elements 
-   * Clean inputs, no heavy glowing rings.
-   */
+  /* ── Forms ─────────────────────────────────────────────────────────── */
   .input-base {
     @apply w-full bg-[#1e1e21] border border-border rounded-lg px-4 py-2 text-foreground text-sm font-medium placeholder:text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors;
   }
 
-  /* 
-   * Clean Buttons
-   */
+  /* ── Buttons ────────────────────────────────────────────────────────── */
   .btn-primary {
     @apply px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:bg-accent-hover transition-colors shadow-sm flex items-center justify-center gap-2;
   }
-
   .btn-secondary {
     @apply px-4 py-2 rounded-lg bg-surface border border-border text-foreground text-sm font-semibold hover:bg-surface-hover hover:border-border-strong transition-all flex items-center justify-center gap-2;
   }
 
-  /*
-   * Skeleton Loading (SaaS Standard)
-   */
+  /* ── Skeleton ───────────────────────────────────────────────────────── */
   .skeleton {
     @apply animate-pulse bg-surface-hover rounded-md;
   }
 
-  /* Reels Snap Scrolling (kept functional but styling removed) */
+  /* ── Reels ──────────────────────────────────────────────────────────── */
   .reels-container {
     @apply h-screen overflow-y-scroll snap-y snap-mandatory no-scrollbar;
   }
   .reel-item {
     @apply h-screen snap-start snap-always;
+  }
+
+  /* ── Mood transition overlay (rendered by MoodContext) ──────────────── */
+  .mood-transition-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    background: var(--mood-gradient);
+  }
+  .mood-transition-overlay.active {
+    opacity: 0.08;
   }
 }

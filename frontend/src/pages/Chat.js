@@ -11,6 +11,7 @@ import {
   BoltIcon
 } from '@heroicons/react/24/outline';
 import { AIBadge } from '../components/ui/SiliconValley';
+import { useMood } from '../context/MoodContext';
 
 const Chat = () => {
   const [conversations, setConversations] = useState([]);
@@ -25,21 +26,60 @@ const Chat = () => {
   const typingTimeoutRef = useRef(null);
 
   const { socket, sendMessage, startTyping, stopTyping, onlineUsers } = useSocket();
+  const { activeMood, theme } = useMood();
 
   const publicRooms = [
-    { id: 'room-startup', name: 'Startup Founders', icon: '🚀', activeCount: 142 },
-    { id: 'room-coding', name: 'Coding Discussions', icon: '💻', activeCount: 89 },
-    { id: 'room-ai', name: 'AI & Machine Learning', icon: '🤖', activeCount: 204 },
-    { id: 'room-study', name: 'Study Sessions', icon: '📚', activeCount: 56 },
-    { id: 'room-design', name: 'Design Critiques', icon: '🎨', activeCount: 34 }
+    { id: 'room-startup', name: 'Hustle Room', icon: '🚀', activeCount: 142, mood: 'Motivational' },
+    { id: 'room-coding', name: 'Coding Room', icon: '💻', activeCount: 89, mood: 'Productive' },
+    { id: 'room-ai', name: 'AI & Machine Learning', icon: '🤖', activeCount: 204, mood: 'Learning' },
+    { id: 'room-study', name: 'Study Room', icon: '📚', activeCount: 56, mood: 'Learning' },
+    { id: 'room-wellness', name: 'Wellness Room', icon: '🌿', activeCount: 34, mood: 'Calm' },
+    { id: 'room-meme', name: 'Meme Lounge', icon: '😂', activeCount: 211, mood: 'Funny' },
+    { id: 'room-general', name: 'General Lounge', icon: '✨', activeCount: 531, mood: 'None' }
   ];
 
-  const aiIcebreakers = [
-    "Ask about their latest MERN project",
-    "Discuss recent YC startup ideas",
-    "Share some modern UI/UX learning resources",
-    "Ask for a code review on React hooks"
-  ];
+  const aiIcebreakers = {
+    Motivational: [
+      "What are you building this week?",
+      "Any recent wins or milestones?",
+      "How do you stay disciplined when motivation drops?"
+    ],
+    Productive: [
+      "Working on anything interesting?",
+      "What's your preferred tech stack right now?",
+      "Need a code review on anything?"
+    ],
+    Calm: [
+      "How do you unplug after a long day?",
+      "Read any good books lately?",
+      "What's your morning routine?"
+    ],
+    Learning: [
+      "What are you currently learning?",
+      "Any good tutorial recommendations?",
+      "How do you take notes when studying complex topics?"
+    ],
+    Funny: [
+      "Send me your best dev meme.",
+      "What's the most ridiculous bug you've encountered?",
+      "Tabs or spaces? (Wrong answers only)"
+    ],
+    None: [
+      "Ask about their latest MERN project",
+      "Discuss recent YC startup ideas",
+      "Share some modern UI/UX learning resources",
+      "Ask for a code review on React hooks"
+    ]
+  };
+
+  const currentIcebreakers = aiIcebreakers[activeMood] || aiIcebreakers.None;
+
+  // Sort public rooms so the mood-recommended ones appear first
+  const sortedRooms = [...publicRooms].sort((a, b) => {
+    if (a.mood === activeMood && b.mood !== activeMood) return -1;
+    if (a.mood !== activeMood && b.mood === activeMood) return 1;
+    return b.activeCount - a.activeCount;
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -187,61 +227,81 @@ const Chat = () => {
     );
   }
 
-  const renderHomeState = () => (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex-1 overflow-y-auto p-8"
-    >
-      <div className="max-w-3xl mx-auto space-y-12">
-        <div className="text-center space-y-4 pt-10">
-          <h2 className="text-3xl font-bold text-foreground">Welcome to the Hub</h2>
-          <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-            Join a public room to collaborate with others, or start a direct message with creators in your network.
-          </p>
-        </div>
+  const renderHomeState = () => {
+    const recommendedRoom = sortedRooms[0];
+    const secondaryRoom = sortedRooms[1];
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="card-base p-6 hover:border-accent transition-colors cursor-pointer" onClick={() => handleSelectRoom(publicRooms[0])}>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">{publicRooms[0].icon}</span>
-              <h3 className="font-semibold text-foreground">{publicRooms[0].name}</h3>
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex-1 overflow-y-auto p-8"
+      >
+        <div className="max-w-3xl mx-auto space-y-12">
+          <div className="text-center space-y-4 pt-10">
+            <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-surface mb-2">
+              <span className="text-4xl">{theme.emoji}</span>
             </div>
-            <p className="text-xs text-muted-foreground mb-4">Discuss MVP launches, funding, and growth strategies with other founders.</p>
-            <div className="flex items-center justify-between mt-auto">
-              <span className="text-xs font-medium text-emerald-500">{publicRooms[0].activeCount} Active</span>
-              <span className="text-xs font-medium text-accent">Join Room &rarr;</span>
-            </div>
+            <h2 className="text-3xl font-bold text-foreground">Welcome to the Hub</h2>
+            <p className="text-muted-foreground text-sm max-w-lg mx-auto">
+              Your Sentient Mood is set to <strong style={{ color: theme.accent }}>{activeMood}</strong>.
+              Join a public room to collaborate, or start a direct message with creators in your network.
+            </p>
           </div>
-          <div className="card-base p-6 hover:border-accent transition-colors cursor-pointer" onClick={() => handleSelectRoom(publicRooms[1])}>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">{publicRooms[1].icon}</span>
-              <h3 className="font-semibold text-foreground">{publicRooms[1].name}</h3>
-            </div>
-            <p className="text-xs text-muted-foreground mb-4">Collaborate on bugs, share repos, and pair program in real time.</p>
-            <div className="flex items-center justify-between mt-auto">
-              <span className="text-xs font-medium text-emerald-500">{publicRooms[1].activeCount} Active</span>
-              <span className="text-xs font-medium text-accent">Join Room &rarr;</span>
-            </div>
-          </div>
-        </div>
 
-        <div className="card-base p-6 bg-surface-hover/50">
-          <div className="flex items-center gap-2 mb-4">
-            <LightBulbIcon className="w-5 h-5 text-accent" />
-            <h3 className="font-semibold text-foreground">AI Icebreakers</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {aiIcebreakers.map((ib, i) => (
-              <div key={i} className="p-3 rounded-lg bg-surface border border-border text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
-                "{ib}"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[recommendedRoom, secondaryRoom].map((room, idx) => (
+              <div 
+                key={room.id}
+                className={`card-base p-6 hover:border-accent transition-colors cursor-pointer relative overflow-hidden group ${idx === 0 ? 'border-accent/30' : ''}`} 
+                onClick={() => handleSelectRoom(room)}
+              >
+                {idx === 0 && (
+                  <div className="absolute top-0 inset-x-0 h-1" style={{ background: theme.gradient }} />
+                )}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{room.icon}</span>
+                    <h3 className="font-semibold text-foreground">{room.name}</h3>
+                  </div>
+                  {idx === 0 && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" style={{ backgroundColor: `${theme.accent}20`, color: theme.accent }}>
+                      Recommended
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">Connect with like-minded individuals.</p>
+                <div className="flex items-center justify-between mt-auto">
+                  <span className="text-xs font-medium text-emerald-500">{room.activeCount} Active</span>
+                  <span className="text-xs font-medium group-hover:underline" style={{ color: theme.accent }}>Join Room &rarr;</span>
+                </div>
               </div>
             ))}
           </div>
+
+          <div className="card-base p-6 bg-surface-hover/50 relative overflow-hidden">
+             {/* Subtle glow */}
+            <div className="absolute top-0 right-0 w-32 h-32 blur-3xl opacity-20 pointer-events-none" style={{ backgroundColor: theme.accent }} />
+            <div className="flex items-center gap-2 mb-4 relative z-10">
+              <LightBulbIcon className="w-5 h-5" style={{ color: theme.accent }} />
+              <h3 className="font-semibold text-foreground">AI Icebreakers for {activeMood} Mode</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10">
+              {currentIcebreakers.map((ib, i) => (
+                <div 
+                  key={i} 
+                  onClick={() => setNewMessage(ib)}
+                  className="p-3 rounded-lg bg-surface border border-border text-xs text-muted-foreground hover:text-foreground hover:border-accent/50 cursor-pointer transition-colors"
+                >
+                  "{ib}"
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-    </motion.div>
-  );
+      </motion.div>
+    );
+  };
 
   return (
     <div className="flex h-[calc(100vh-160px)] gap-6 max-w-7xl mx-auto py-4 px-4">
@@ -259,7 +319,7 @@ const Chat = () => {
           <div className="px-4">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Public Rooms</h3>
             <div className="space-y-1">
-              {publicRooms.map(room => (
+              {sortedRooms.map(room => (
                 <div 
                   key={room.id}
                   onClick={() => handleSelectRoom(room)}
@@ -268,6 +328,9 @@ const Chat = () => {
                   <div className="flex items-center gap-2">
                     <HashtagIcon className="w-4 h-4" />
                     <span className="text-sm font-medium truncate">{room.name}</span>
+                    {room.mood === activeMood && activeMood !== 'None' && (
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: theme.accent }} />
+                    )}
                   </div>
                   <span className="text-[10px] font-medium bg-surface-hover px-1.5 py-0.5 rounded">{room.activeCount}</span>
                 </div>

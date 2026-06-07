@@ -45,7 +45,7 @@ const Search = () => {
     try {
       setLoading(true);
       const [sugRes, trendRes] = await Promise.all([
-        usersAPI.searchUsers(''),
+        usersAPI.searchUsers('', activeMood),
         hashtagAPI.getTrending(activeMood, 15)
       ]);
       setSuggestions(sugRes.data.suggestions || []);

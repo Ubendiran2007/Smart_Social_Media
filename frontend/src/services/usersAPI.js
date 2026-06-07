@@ -4,7 +4,7 @@ export const usersAPI = {
   getProfile: (userId) => api.get(`/users/${userId}`),
   updateProfile: (data) => api.put('/users/profile', data),
   toggleFollow: (userId) => api.put(`/users/${userId}/follow`),
-  searchUsers: (query) => api.get(`/users/search?q=${query}`),
+  searchUsers: (query, mood) => api.get(`/users/search?q=${query}&mood=${mood || ''}`),
   updateMood: (mood) => api.put('/users/update-mood', { mood }),
   getWellness: () => api.get('/users/wellness'),
   syncWellness: (data) => api.put('/users/wellness/sync', data)

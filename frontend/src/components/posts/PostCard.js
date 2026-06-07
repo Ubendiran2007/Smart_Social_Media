@@ -21,6 +21,7 @@ import { GlassCard, AIBadge, NeonButton } from '../ui/SiliconValley';
 import { toast } from 'react-hot-toast';
 import { aiAPI } from '../../services/aiAPI';
 import { ClickableHashtags, HashtagPill } from '../hashtags/HashtagIntelligencePanel';
+import { useMood } from '../../context/MoodContext';
 
 const PostCard = ({ post, onUpdate, onDelete }) => {
   const { user } = useAuth();
@@ -34,6 +35,17 @@ const PostCard = ({ post, onUpdate, onDelete }) => {
   const [liveToxicity, setLiveToxicity] = useState(0);
   const [isSafe, setIsSafe] = useState(true);
   const [analysisLoading, setAnalysisLoading] = useState(false);
+  const { activeMood, theme } = useMood();
+
+  const aiCommentSuggestions = {
+    Motivational: ["Incredible work! 🔥", "Super inspiring.", "Huge milestone! 🚀"],
+    Productive: ["Great setup! What's the stack? 💻", "Ship it 🚀", "Clean architecture!"],
+    Calm: ["This is so peaceful 🌿", "Love the vibe.", "Aesthetically pleasing. ✨"],
+    Learning: ["Thanks for sharing this! 📚", "I learned something new today.", "Great explanation. 💡"],
+    Funny: ["LMAO 😂", "Too relatable. 💀", "This made my day."],
+    None: ["Love this! ✨", "Great post.", "So true. 💯"]
+  };
+  const currentSuggestions = aiCommentSuggestions[activeMood] || aiCommentSuggestions.None;
 
   // Real-time analysis logic
   useEffect(() => {
@@ -378,6 +390,19 @@ const PostCard = ({ post, onUpdate, onDelete }) => {
             >
               {loading ? <div className="w-4 h-4 border-2 border-muted border-t-accent rounded-full animate-spin" /> : <PaperAirplaneIcon className="w-5 h-5" />}
             </button>
+          </div>
+          
+          <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar py-1">
+            {currentSuggestions.map((sug, idx) => (
+               <button
+                 key={idx}
+                 type="button"
+                 onClick={() => setComment(sug)}
+                 className="whitespace-nowrap px-3 py-1.5 rounded-full bg-surface hover:bg-surface-hover border border-border text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors hover:border-accent/50"
+               >
+                 {sug}
+               </button>
+            ))}
           </div>
         </form>
 
