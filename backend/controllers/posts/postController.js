@@ -54,6 +54,13 @@ const createPost = async (req, res) => {
     });
 
     await post.populate('user', 'username fullName avatar');
+    
+    // Award XP for creating a post
+    const GamificationService = require('../../services/GamificationService');
+    await GamificationService.awardXP(req.user.id, 'post', {}, req.io).catch(err => {
+      console.error('Failed to award post XP:', err);
+    });
+
     res.status(201).json({ success: true, post });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -169,6 +176,17 @@ const addComment = async (req, res) => {
     post.comments.push(comment);
     await post.save();
     await post.populate('comments.user', 'username fullName avatar');
+
+    // Award XP for healthy/constructive comment
+    const GamificationService = require('../../services/GamificationService');
+    const isCodeSnippet = text.trim().startsWith('```') || text.includes('```');
+    if (toxicityResult.score < 0.15) {
+      if (isCodeSnippet || (post.caption && (post.caption.includes('#coding') || post.caption.includes('#study')))) {
+        await GamificationService.awardXP(req.user.id, 'help_others', { roomId: 'post-help' }, req.io).catch(() => {});
+      } else {
+        await GamificationService.awardXP(req.user.id, 'positive_comment', {}, req.io).catch(() => {});
+      }
+    }
 
     // Create notification
     if (post.user.toString() !== req.user.id) {

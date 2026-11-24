@@ -201,6 +201,12 @@ const initializeSocket = (server) => {
         console.error('Failed to record room behavior:', err);
       });
 
+      // Award XP for joining a room
+      const GamificationService = require('../services/GamificationService');
+      GamificationService.awardXP(socket.userId, 'join_room', { roomId, roomType: roomId.replace('room-', '') }, io).catch(err => {
+        console.error('Failed to award room XP:', err);
+      });
+
       // Broadcast active count to room
       io.to(roomId).emit('roomMembersUpdate', { roomId, count: roomMembers.get(roomId).size });
       
@@ -256,6 +262,14 @@ const initializeSocket = (server) => {
         durationMinutes, 
         startTime: Date.now(),
         startedBy: socket.user.username
+      });
+    });
+
+    // Focus Session Completed — award XP to the user who finished
+    socket.on('focusSessionCompleted', () => {
+      const GamificationService = require('../services/GamificationService');
+      GamificationService.awardXP(socket.userId, 'focus_session', {}, io).catch(err => {
+        console.error('Failed to award focus session XP:', err);
       });
     });
   });

@@ -190,6 +190,13 @@ function AppContent() {
             </Layout>
           </ProtectedRoute>
         } />
+        <Route path="/achievements" element={
+          <ProtectedRoute>
+            <Layout>
+              <Achievements />
+            </Layout>
+          </ProtectedRoute>
+        } />
 
 
         
@@ -203,6 +210,8 @@ function AppContent() {
 import { MoodProvider }           from './context/MoodContext';
 import { WellnessProvider }       from './context/WellnessContext';
 import { RecommendationProvider } from './context/RecommendationContext';
+import { GamificationProvider }   from './context/GamificationContext';
+import Achievements from './pages/Achievements';
 
 function App() {
   return (
@@ -217,7 +226,9 @@ function App() {
           <WellnessProvider>
             <RecommendationProvider>
               <SocketProvider>
-                <AppContent />
+                <GamificationProvider>
+                  <AppContent />
+                </GamificationProvider>
               </SocketProvider>
             </RecommendationProvider>
           </WellnessProvider>

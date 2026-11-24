@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
+import { useGamification } from '../../context/GamificationContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   HomeIcon,
@@ -19,7 +20,8 @@ import {
   PowerIcon,
   UserIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  TrophyIcon
 } from '@heroicons/react/24/outline';
 import { useMood } from '../../context/MoodContext';
 import AIAssistant from './AIAssistant';
@@ -27,6 +29,7 @@ import AIAssistant from './AIAssistant';
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const { notifications } = useSocket();
+  const { profile: gamProfile } = useGamification();
   const { activeMood, changeMood } = useMood();
   const location = useLocation();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -55,7 +58,8 @@ const Layout = ({ children }) => {
       badge: notifications.filter(n => !n.isRead).length
     },
     { name: 'Wellness', href: '/wellness', icon: SparklesIcon, current: location.pathname === '/wellness' },
-    { name: 'Analytics', href: '/analytics', icon: ChartBarIcon, current: location.pathname === '/analytics' }
+    { name: 'Analytics', href: '/analytics', icon: ChartBarIcon, current: location.pathname === '/analytics' },
+    { name: 'Achievements', href: '/achievements', icon: TrophyIcon, current: location.pathname === '/achievements' }
   ];
 
   return (
@@ -176,6 +180,16 @@ const Layout = ({ children }) => {
                     <Link to={`/profile/${user?._id}`} className="flex items-center gap-3 px-4 py-2 hover:bg-surface-hover text-sm font-medium text-foreground transition-colors">
                       <UserIcon className="w-4 h-4 text-muted-foreground" /> Profile
                     </Link>
+                    <Link to="/achievements" className="flex items-center gap-3 px-4 py-2 hover:bg-surface-hover text-sm font-medium text-foreground transition-colors">
+                      <TrophyIcon className="w-4 h-4 text-amber-500" />
+                      <span>Achievements</span>
+                      {gamProfile && (
+                        <span className="ml-auto text-[10px] font-bold text-accent bg-accent/10 border border-accent/20 px-1.5 py-0.5 rounded">
+                          Lvl {gamProfile.level}
+                        </span>
+                      )}
+                    </Link>
+                    <div className="border-t border-border my-1" />
                     <button 
                       onClick={logout}
                       className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-500/10 text-sm font-medium text-red-500 transition-colors"

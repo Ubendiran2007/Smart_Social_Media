@@ -181,6 +181,17 @@ const addComment = async (req, res) => {
     await reel.save();
     await reel.populate('comments.user', 'username fullName avatar');
 
+    // Award XP for healthy/constructive comment
+    const GamificationService = require('../../services/GamificationService');
+    const isCodeSnippet = text.trim().startsWith('```') || text.includes('```');
+    if (toxicityResult.score < 0.15) {
+      if (isCodeSnippet || (reel.caption && (reel.caption.includes('#coding') || reel.caption.includes('#study')))) {
+        await GamificationService.awardXP(req.user.id, 'help_others', { roomId: 'reel-help' }, req.io).catch(() => {});
+      } else {
+        await GamificationService.awardXP(req.user.id, 'positive_comment', {}, req.io).catch(() => {});
+      }
+    }
+
     // Create notification
     if (reel.user.toString() !== req.user.id) {
       const notification = await Notification.create({
@@ -212,6 +223,12 @@ const incrementView = async (req, res) => {
 
     if (!reel) {
       return res.status(404).json({ message: 'Reel not found' });
+    }
+
+    // Award XP if this is an educational reel
+    if (reel.aiMetadata?.emotionCategory === 'Learning') {
+      const GamificationService = require('../../services/GamificationService');
+      await GamificationService.awardXP(req.user.id, 'learn_reel', {}, req.io).catch(() => {});
     }
 
     res.json({ success: true, views: reel.views });

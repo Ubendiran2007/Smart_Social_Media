@@ -104,6 +104,38 @@ const userSchema = new mongoose.Schema({
       Calm:         { type: Number, default: 0 },
       Funny:        { type: Number, default: 0 }
     }
+  },
+  gamification: {
+    xp: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+    streaks: {
+      learning: { type: Number, default: 0 },
+      focus: { type: Number, default: 0 },
+      lastLearningDate: { type: Date },
+      lastFocusDate: { type: Date }
+    },
+    achievements: [{
+      id: { type: String, required: true },
+      name: { type: String, required: true },
+      icon: { type: String, required: true },
+      description: { type: String, required: true },
+      unlockedAt: { type: Date, default: Date.now }
+    }],
+    badges: [{
+      id: { type: String, required: true },
+      name: { type: String, required: true },
+      icon: { type: String, required: true },
+      category: { type: String, enum: ['Wellness', 'Collaboration', 'Activity', 'Learning', 'Productivity'], required: true },
+      description: { type: String, required: true },
+      unlockedAt: { type: Date, default: Date.now }
+    }],
+    stats: {
+      postsCreated: { type: Number, default: 0 },
+      focusSessionsCompleted: { type: Number, default: 0 },
+      roomsJoined: { type: Number, default: 0 },
+      positiveCommentsCount: { type: Number, default: 0 },
+      educationalReelsWatched: { type: Number, default: 0 }
+    }
   }
 }, {
   timestamps: true

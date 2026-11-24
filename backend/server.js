@@ -91,6 +91,7 @@ app.use((req, res, next) => {
 });
 
 const searchRoutes = require('./routes/searchRoutes');
+const gamificationRoutes = require('./routes/gamification/gamificationRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
@@ -103,6 +104,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/hashtags',         hashtagRoutes);
 app.use('/api/search',           searchRoutes);
 app.use('/api/recommendations',  recommendationRoutes);
+app.use('/api/gamification',      gamificationRoutes);
 
 
 // Health check
