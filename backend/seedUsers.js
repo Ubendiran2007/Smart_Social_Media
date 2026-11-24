@@ -7,10 +7,28 @@ dotenv.config();
 
 const dummyUsers = [
   {
+    username: 'admin',
+    email: 'admin@sentient.io',
+    password: 'password123',
+    fullName: 'Platform Admin',
+    role: 'admin',
+    bio: 'Platform Administrator & Neural Core Controller 🛡️',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=256&h=256&auto=format&fit=crop',
+    interests: ['Security', 'DevOps', 'AI'],
+    professionalProfile: {
+      skills: ['System Design', 'Cybersecurity', 'Cloud'],
+      techBadges: ['System Admin', 'Neural Pioneer']
+    },
+    moodAnalytics: {
+      currentMood: 'Productive'
+    }
+  },
+  {
     username: 'alex_neuro',
     email: 'alex@sentient.io',
     password: 'password123',
     fullName: 'Alex Neuro',
+    role: 'user',
     bio: 'Neural Architect | Building the collective consciousness.',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=256&h=256&auto=format&fit=crop',
     interests: ['AI', 'Architecture', 'Neural Networks'],

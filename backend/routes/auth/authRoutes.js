@@ -15,7 +15,7 @@ router.post('/register', [
 
 // Login
 router.post('/login', [
-  body('email').isEmail().withMessage('Please enter a valid email'),
+  body('email').notEmpty().withMessage('Email or username is required'),
   body('password').exists().withMessage('Password is required')
 ], login);
 
