@@ -8,7 +8,7 @@ const StoryRing = ({ user, stories }) => {
   const getImageUrl = (url) => {
     if (!url) return '';
     if (url.startsWith('http')) return url;
-    return `http://localhost:5000${url}`;
+    return `${process.env.REACT_APP_SERVER_URL || 'http://localhost:5000'}${url}`;
   };
 
   return (

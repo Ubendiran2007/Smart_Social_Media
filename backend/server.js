@@ -31,22 +31,14 @@ connectDB();
 const io = initializeSocket(server);
 
 // Middleware
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      imgSrc: ["'self'", "data:", "https://images.unsplash.com", "https://ui-avatars.com", "https://source.unsplash.com"],
-      mediaSrc: ["'self'", "https://player.vimeo.com", "https://vimeo.com", "https://*.vimeo.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      connectSrc: ["'self'", "ws://localhost:5000", "http://localhost:5000"]
-    }
-  },
+  contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false
 }));
 app.use(cors({
-  origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+  origin: [FRONTEND_URL, "http://localhost:3000", "http://127.0.0.1:3000"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Range']
